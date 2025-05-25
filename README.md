@@ -6,7 +6,7 @@ to process simulations using Qiskit Aer (with a fallback for IBM Quantum if conf
 ## Prerequisites
 
 *   **Python:** This project was developed and tested with **Python 3.11.x**. It's recommended to uses the same version. They might need to install it if they don't have it.
-    *   On Linux, they might use their system package manager (e.g., `sudo apt install python3.11 python3.11-venv python3.11-pip` for Debian/Ubuntu, or `sudo pacman -S python311 ...` for Arch).
+    *   On Linux, they might use their system package manager (e.g., `sudo apt install python3.11 python3.11-venv python3.11-pip` for Debian/Ubuntu, or `yay -S python311 ...` for Arch).
     *   On Windows/macOS, they can download from python.org.
 *   **A way to run a web server for static files (optional, for frontend):** Or they can just open the HTML file directly in a browser.
 
