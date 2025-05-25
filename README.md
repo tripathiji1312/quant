@@ -33,27 +33,7 @@ to process simulations using Qiskit Aer (with a fallback for IBM Quantum if conf
         ```bash
         pip install -r requirements.txt
         ```
-    *   **Configure API Keys for Backend (VERY IMPORTANT):**
-        *   In the `quantum_simulator_backend` directory, create a file named `.env`.
-        *   Add your IBM Quantum API credentials. **You (the friend) will need to get your own API key from IBM Quantum.**
-        *   Choose EITHER the `ibm_quantum` (legacy) OR `ibm_cloud` (recommended) channel:
-
-            **Option A: For `ibm_quantum` channel (legacy token from quantum-computing.ibm.com):**
-            ```env
-            IBM_QUANTUM_API_KEY="YOUR_LEGACY_IBM_QUANTUM_TOKEN_HERE"
-            IBM_QUANTUM_CHANNEL="ibm_quantum"
-            IBM_QUANTUM_INSTANCE="ibm-q/open/main" 
-            ```
-            *(Note: The `ibm_quantum` channel is deprecated and will stop working soon. Migration to `ibm_cloud` is strongly advised.)*
-
-            **Option B: For `ibm_cloud` channel (API key from cloud.ibm.com):**
-            ```env
-            IBM_QUANTUM_API_KEY="YOUR_IBM_CLOUD_API_KEY_HERE"
-            IBM_QUANTUM_CHANNEL="ibm_cloud"
-            # IBM_QUANTUM_INSTANCE="" # Usually not needed for ibm_cloud unless you have a specific service CRN
-            ```
-        *   **Do not commit your actual `.env` file if this were a public repository.** This instruction is for your friend to create their own.
-
+    
 3.  **Frontend Setup:**
     *   The main frontend file is `quantum_simulator.html`.
 
