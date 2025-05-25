@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Circuit Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- PASTE YOUR ORIGINAL CSS HERE --- */
+        /* For example: */
+        .gate {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .gate:hover {
+            transform: scale(1.1);
+        }
+
+        .circuit-cell {
+            width: 50px;
+            height: 50px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .circuit-cell:hover {
+            background-color: #f3f4f6;
+        }
+
+        .circuit-cell.selected {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .circuit-cell.has-gate {
+            background-color: #e0f2fe;
+        }
+
+        .circuit-cell.pending-control {
+            background-color: #fef9c3;
+            /* Yellowish */
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-message {
+            background-color: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 0.25rem;
+        }
+
+        .ai-message {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            margin-right: auto;
+            border-bottom-left-radius: 0.25rem;
+        }
+
+        .quantum-state {
+            /* Also for QASM display */
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            border: 1px solid #e5e7eb;
+            max-height: 400px;
+            /* Increased height */
+            overflow-y: auto;
+        }
+
+        .gate-button.selected-gate-button {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        /* Ensure prose styles for chat/AI are effective */
+        .prose {
+            max-width: none;
+        }
+
+        .prose-sm {
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-blue-600 mb-2">Quantum Circuit Simulator</h1>
+            <p class="text-gray-600">Visualize circuits, generate QASM, and simulate via backend (Local Aer or IBM
+                Quantum).</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Panel - Controls -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Circuit Controls</h2>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Circuit Setup</label>
+                    <div class="flex space-x-2 items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Qubits</label>
+                            <input type="number" id="qubit-count" min="1" max="8" value="2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-gray-500 mb-1">Columns</label>
+                            <input type="number" id="column-count" min="1" max="20" value="4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <button id="update-circuit-btn"
+                            class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm">
+                            Update
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Quantum Gates <span id="gate-status"
+                            class="text-xs text-gray-500 ml-2"></span></label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button data-gate="H"
+                            class="gate gate-button bg-purple-100 text-purple-800 hover:bg-purple-200">H</button>
+                        <button data-gate="X"
+                            class="gate gate-button bg-red-100 text-red-800 hover:bg-red-200">X</button>
+                        <button data-gate="Y"
+                            class="gate gate-button bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Y</button>
+                        <button data-gate="Z"
+                            class="gate gate-button bg-green-100 text-green-800 hover:bg-green-200">Z</button>
+                        <button data-gate="CNOT"
+                            class="gate gate-button bg-blue-100 text-blue-800 hover:bg-blue-200">CNOT</button>
+                        <button data-gate="SWAP"
+                            class="gate gate-button bg-indigo-100 text-indigo-800 hover:bg-indigo-200">SWAP</button>
+                        <button data-gate="S"
+                            class="gate gate-button bg-cyan-100 text-cyan-800 hover:bg-cyan-200">S</button>
+                        <button data-gate="T"
+                            class="gate gate-button bg-amber-100 text-amber-800 hover:bg-amber-200">T</button>
+                        <button data-gate="Measure"
+                            class="gate gate-button bg-gray-200 text-gray-800 hover:bg-gray-300">M</button>
+                        <button data-gate="CLEAR"
+                            class="gate gate-button bg-stone-100 text-stone-800 hover:bg-stone-200">Del</button>
+                        <!-- RX, RY, RZ omitted as angle params not handled for QASM -->
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Circuit Actions</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="run-simulation-btn"
+                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Run
+                            Simulation</button>
+                        <button id="clear-circuit-btn"
+                            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">Clear
+                            All</button>
+                        <button id="export-circuit-btn"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Export
+                            JSON</button>
+                        <button id="import-circuit-btn"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Import
+                            JSON</button>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Prebuilt Circuits</label>
+                    <select id="prebuilt-circuits-select"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Select a circuit...</option>
+                        <option value="bell">Bell State (2 qubits)</option>
+                        <option value="ghz">GHZ State (3 qubits)</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">AI Tools (OpenRouter API)</label>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="build-with-ai-btn"
+                            class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">Build
+                            with AI</button>
+                        <button id="explain-circuit-ai-btn"
+                            class="px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2">Explain
+                            Circuit</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Panel - Circuit -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Quantum Circuit</h2>
+                <div id="circuit-grid-container" class="overflow-auto mb-4">
+                    <!-- Circuit grid will be generated here -->
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-medium text-gray-700 mb-2">QASM & Simulation Results</h3>
+                    <div id="simulation-results-div" class="quantum-state min-h-48 p-3 bg-gray-100 rounded">
+                        <p class="text-gray-500 italic">Generated QASM and simulation results will appear here.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - AI Chat -->
+            <div class="lg:col-span-1 bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">Quantum Tutor (OpenRouter API)</h2>
+                <div id="chat-messages-container" class="h-96 overflow-y-auto mb-4 space-y-2 p-2 bg-gray-100 rounded">
+                    <div class="ai-message prose prose-sm">
+                        <p>Hello! I'm your Quantum Computing tutor. Ask me anything about quantum circuits, gates, or
+                            algorithms.</p>
+                    </div>
+                </div>
+                <div class="flex">
+                    <input id="chat-input-field" type="text" placeholder="Ask a quantum question..."
+                        class="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <button id="send-chat-btn"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for AI Build -->
+    <div id="ai-build-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Build Circuit with AI</h3>
+            <p class="text-sm text-gray-600 mb-4">Describe the quantum circuit you want to create:</p>
+            <textarea id="ai-build-prompt-textarea" rows="4"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-4"
+                placeholder="e.g., Create a 2-qubit Bell state"></textarea>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-ai-build-btn"
+                    class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+                <button id="submit-ai-build-btn"
+                    class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Import JSON -->
+    <div id="import-json-modal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Import Circuit JSON</h3>
+            <p class="text-sm text-gray-600 mb-4">Paste the circuit JSON data:</p>
+            <textarea id="import-json-textarea" rows="6"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 mb-4 font-mono text-sm"></textarea>
+            <div class="flex justify-end space-x-2">
+                <button id="cancel-import-json-btn"
+                    class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancel</button>
+                <button id="submit-import-json-btn"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Import</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- CONFIGURATION ---
+            // WARNING: Exposing API keys client-side is a security risk for production.
+            // These should ideally be handled via a backend proxy for the AI features.
+            const OPENROUTER_API_KEY = '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'; 
+            const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+            const FLASK_BACKEND_URL = 'http://127.0.0.1:5000/simulate'; // Your Flask backend
+
+            // --- STATE ---
+            let circuit = {
+                qubits: 2,
+                columns: 4,
+                gates: [] // 2D array: gates[qubit][column]
+            };
+            let selectedGateType = null; // e.g., "H", "CNOT", "CLEAR"
+            let pendingMultiQubitOp = null; // { type: "CNOT", controlQubit: q, controlCol: c }
+            let lastClickedCellCoords = null; // { qubit, column }
+            let aiChatHistory = [
+                { role: 'assistant', content: "Hello! I'm your Quantum Computing tutor. Ask me anything!" }
+            ];
+
+            // --- DOM ELEMENTS ---
+            const qubitCountInput = document.getElementById('qubit-count');
+            const columnCountInput = document.getElementById('column-count');
+            const updateCircuitBtn = document.getElementById('update-circuit-btn');
+            const circuitGridContainer = document.getElementById('circuit-grid-container');
+            const simulationResultsDiv = document.getElementById('simulation-results-div');
+            const gateStatusSpan = document.getElementById('gate-status');
+
+            const runSimulationBtn = document.getElementById('run-simulation-btn');
+            const clearCircuitBtn = document.getElementById('clear-circuit-btn');
+            const exportCircuitBtn = document.getElementById('export-circuit-btn');
+            const importCircuitBtn = document.getElementById('import-circuit-btn');
+            const prebuiltCircuitsSelect = document.getElementById('prebuilt-circuits-select');
+
+            // AI Tool Buttons & Modals
+            const buildWithAiBtn = document.getElementById('build-with-ai-btn');
+            const explainCircuitAiBtn = document.getElementById('explain-circuit-ai-btn');
+            const aiBuildModal = document.getElementById('ai-build-modal');
+            const aiBuildPromptTextarea = document.getElementById('ai-build-prompt-textarea');
+            const cancelAiBuildBtn = document.getElementById('cancel-ai-build-btn');
+            const submitAiBuildBtn = document.getElementById('submit-ai-build-btn');
+
+            // Import JSON Modal
+            const importJsonModal = document.getElementById('import-json-modal');
+            const importJsonTextarea = document.getElementById('import-json-textarea');
+            const cancelImportJsonBtn = document.getElementById('cancel-import-json-btn');
+            const submitImportJsonBtn = document.getElementById('submit-import-json-btn');
+
+            // AI Chat Elements
+            const chatMessagesContainer = document.getElementById('chat-messages-container');
+            const chatInputField = document.getElementById('chat-input-field');
+            const sendChatBtn = document.getElementById('send-chat-btn');
+
+            // --- INITIALIZATION ---
+            initializeCircuitState();
+            setupEventListeners();
+
+            // --- CORE CIRCUIT LOGIC ---
+            function initializeCircuitState() {
+                circuit.qubits = parseInt(qubitCountInput.value);
+                circuit.columns = parseInt(columnCountInput.value);
+                circuit.gates = Array(circuit.qubits).fill(null).map(() => Array(circuit.columns).fill(null));
+                clearGateSelection(); // Resets selectedGateType and pendingMultiQubitOp
+                renderCircuitGrid();
+                simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit updated. Run simulation to see results.</p>';
+            }
+
+            function renderCircuitGrid() {
+                circuitGridContainer.innerHTML = ''; // Clear previous grid
+
+                // Header row for column numbers
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex';
+                const qubitLabelHeader = document.createElement('div');
+                qubitLabelHeader.className = 'w-16 h-8 flex items-center justify-center text-xs text-gray-500 sticky left-0 bg-white z-10'; // Sticky Qubit Label Header
+                qubitLabelHeader.textContent = 'Qubit';
+                headerDiv.appendChild(qubitLabelHeader);
+                for (let c = 0; c < circuit.columns; c++) {
+                    const colHeader = document.createElement('div');
+                    colHeader.className = 'w-[50px] h-8 flex items-center justify-center text-xs text-gray-500';
+                    colHeader.textContent = `${c}`;
+                    headerDiv.appendChild(colHeader);
+                }
+                circuitGridContainer.appendChild(headerDiv);
+
+                // Circuit rows
+                for (let q = 0; q < circuit.qubits; q++) {
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'flex';
+
+                    const qubitLabel = document.createElement('div');
+                    qubitLabel.className = 'w-16 h-[50px] flex items-center justify-center text-sm font-medium text-gray-700 sticky left-0 bg-white z-10'; // Sticky Qubit Label
+                    qubitLabel.textContent = `Q${q}`;
+                    rowDiv.appendChild(qubitLabel);
+
+                    for (let c = 0; c < circuit.columns; c++) {
+                        const cellDiv = document.createElement('div');
+                        cellDiv.className = 'circuit-cell';
+                        cellDiv.dataset.qubit = q;
+                        cellDiv.dataset.column = c;
+
+                        if (lastClickedCellCoords && lastClickedCellCoords.qubit === q && lastClickedCellCoords.column === c) {
+                            cellDiv.classList.add('selected');
+                        }
+
+                        const gateSymbol = circuit.gates[q][c];
+                        if (gateSymbol) {
+                            cellDiv.classList.add('has-gate');
+                            const gateDiv = document.createElement('div');
+                            let displaySymbol = gateSymbol;
+                            let bgColor = 'bg-sky-100'; let textColor = 'text-sky-800'; // Default gate color
+
+                            // Specific gate colors/symbols
+                            if (gateSymbol === 'H') { bgColor = 'bg-purple-100'; textColor = 'text-purple-800'; }
+                            else if (gateSymbol === 'X') { bgColor = 'bg-red-100'; textColor = 'text-red-800'; }
+                            else if (gateSymbol === 'Y') { bgColor = 'bg-yellow-100'; textColor = 'text-yellow-800'; }
+                            else if (gateSymbol === 'Z') { bgColor = 'bg-green-100'; textColor = 'text-green-800'; }
+                            else if (gateSymbol === 'S') { bgColor = 'bg-cyan-100'; textColor = 'text-cyan-800'; }
+                            else if (gateSymbol === 'T') { bgColor = 'bg-amber-100'; textColor = 'text-amber-800'; }
+                            else if (gateSymbol === 'Measure') { displaySymbol = 'M'; bgColor = 'bg-gray-200'; textColor = 'text-gray-800'; }
+                            else if (gateSymbol === 'CNOT-C') { displaySymbol = '●'; bgColor = 'bg-blue-200'; textColor = 'text-blue-800'; }
+                            else if (gateSymbol === 'CNOT-T') { displaySymbol = '⊕'; bgColor = 'bg-blue-200'; textColor = 'text-blue-800'; }
+                            else if (gateSymbol === 'SWAP') { displaySymbol = '✕'; bgColor = 'bg-indigo-200'; textColor = 'text-indigo-800'; }
+
+                            gateDiv.className = `gate ${bgColor} ${textColor}`;
+                            gateDiv.textContent = displaySymbol;
+                            cellDiv.appendChild(gateDiv);
+                        }
+
+                        if (pendingMultiQubitOp && pendingMultiQubitOp.controlQubit === q && pendingMultiQubitOp.column === c) {
+                            cellDiv.classList.add('pending-control');
+                            if (!gateSymbol) {
+                                const pendingText = document.createElement('div');
+                                pendingText.className = 'text-xs text-yellow-600 italic';
+                                pendingText.textContent = pendingMultiQubitOp.type.charAt(0) + '-Ctrl?';
+                                cellDiv.appendChild(pendingText);
+                            }
+                        }
+                        cellDiv.addEventListener('click', () => handleCellClick(q, c, cellDiv));
+                        rowDiv.appendChild(cellDiv);
+                    }
+                    circuitGridContainer.appendChild(rowDiv);
+                }
+            }
+
+            function handleCellClick(qubit, column, cellElement) {
+                document.querySelectorAll('.circuit-cell.selected').forEach(c => c.classList.remove('selected'));
+                cellElement.classList.add('selected');
+                lastClickedCellCoords = { qubit, column };
+
+                if (pendingMultiQubitOp) { // Completing a multi-qubit gate
+                    if (pendingMultiQubitOp.column === column && pendingMultiQubitOp.controlQubit !== qubit) {
+                        const { type, controlQubit, column: controlCol } = pendingMultiQubitOp;
+                        circuit.gates[controlQubit][controlCol] = null; // Clear source cell if occupied by placeholder
+                        circuit.gates[qubit][column] = null;      // Clear target cell
+
+                        if (type === 'CNOT') {
+                            circuit.gates[controlQubit][controlCol] = 'CNOT-C';
+                            circuit.gates[qubit][column] = 'CNOT-T';
+                        } else if (type === 'SWAP') {
+                            circuit.gates[controlQubit][controlCol] = 'SWAP';
+                            circuit.gates[qubit][column] = 'SWAP';
+                        }
+                        clearGateSelection();
+                    } else if (pendingMultiQubitOp.column !== column) {
+                        alert(`Invalid target for ${pendingMultiQubitOp.type}. Target must be in the same column. Cancelling.`);
+                        clearGateSelection();
+                    } else { // Clicked same qubit
+                        alert(`Invalid target for ${pendingMultiQubitOp.type}. Target must be a different qubit. Cancelling.`);
+                        clearGateSelection();
+                    }
+                } else if (selectedGateType) { // Placing a new gate
+                    if (selectedGateType === 'CNOT' || selectedGateType === 'SWAP') {
+                        circuit.gates[qubit][column] = null; // Clear cell before marking as pending
+                        pendingMultiQubitOp = { type: selectedGateType, controlQubit: qubit, column: column };
+                        updateGateStatusDisplay(); // Update status message
+                    } else if (selectedGateType === 'CLEAR') {
+                        circuit.gates[qubit][column] = null;
+                        // Optional: keep CLEAR selected: updateGateStatusDisplay(); 
+                        // Or deselect: clearGateSelection(); 
+                    } else { // Single-qubit gate
+                        circuit.gates[qubit][column] = selectedGateType;
+                        // Optional: deselect after placement: clearGateSelection();
+                    }
+                }
+                renderCircuitGrid();
+            }
+
+            function clearGateSelection() {
+                selectedGateType = null;
+                pendingMultiQubitOp = null;
+                updateSelectedGateButtonStyle();
+                updateGateStatusDisplay();
+                if (lastClickedCellCoords) { // Re-render to remove any pending text
+                    renderCircuitGrid();
+                }
+            }
+
+            function updateSelectedGateButtonStyle() {
+                document.querySelectorAll('.gate-button').forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-offset-2', 'ring-blue-500', 'selected-gate-button');
+                    if (btn.getAttribute('data-gate') === selectedGateType) {
+                        btn.classList.add('ring-2', 'ring-offset-2', 'ring-blue-500', 'selected-gate-button');
+                    }
+                });
+            }
+
+            function updateGateStatusDisplay() {
+                if (!selectedGateType && !pendingMultiQubitOp) {
+                    gateStatusSpan.textContent = ""; return;
+                }
+                if (pendingMultiQubitOp) {
+                    gateStatusSpan.textContent = `Placing ${pendingMultiQubitOp.type}. Click target qubit in column ${pendingMultiQubitOp.column}.`;
+                } else if (selectedGateType) {
+                    if (selectedGateType === 'CNOT' || selectedGateType === 'SWAP') {
+                        gateStatusSpan.textContent = `Selected ${selectedGateType}. Click control/first qubit cell.`;
+                    } else if (selectedGateType === 'CLEAR') {
+                        gateStatusSpan.textContent = `Selected Delete. Click cell to clear.`;
+                    } else {
+                        gateStatusSpan.textContent = `Selected ${selectedGateType}. Click cell to place.`;
+                    }
+                }
+            }
+
+            function clearFullCircuit() {
+                if (confirm('Are you sure you want to clear the entire circuit?')) {
+                    initializeCircuitState();
+                }
+            }
+
+            // --- QASM GENERATION & SIMULATION ---
+            function generateQASM() {
+                let qasmString = "OPENQASM 2.0;\n";
+                qasmString += "include \"qelib1.inc\";\n";
+                qasmString += `qreg q[${circuit.qubits}];\n`;
+
+                let hasMeasurement = false;
+                let measurementRegisters = new Set();
+                circuit.gates.forEach((row, qidx) => row.forEach(gate => {
+                    if (gate === 'Measure') {
+                        hasMeasurement = true;
+                        measurementRegisters.add(qidx);
+                    }
+                }));
+
+                if (hasMeasurement) {
+                    // Only declare classical bits actually used for measurement if possible,
+                    // or simply declare enough for all qubits if measure_all might be used implicitly.
+                    // For simplicity here, if any measurement, declare for all qubits.
+                    qasmString += `creg c[${circuit.qubits}];\n`;
+                }
+
+                const processedMultiQubitInColumn = new Set();
+
+                for (let c = 0; c < circuit.columns; c++) {
+                    processedMultiQubitInColumn.clear();
+                    for (let q = 0; q < circuit.qubits; q++) {
+                        const gate = circuit.gates[q][c];
+                        if (!gate || processedMultiQubitInColumn.has(`${q}-${c}`)) continue;
+
+                        const q_idx = `q[${q}]`;
+                        const c_idx = `c[${q}]`; // Assumes cbit index matches qbit index for measurement
+
+                        switch (gate) {
+                            case 'H': qasmString += `h ${q_idx};\n`; break;
+                            case 'X': qasmString += `x ${q_idx};\n`; break;
+                            case 'Y': qasmString += `y ${q_idx};\n`; break;
+                            case 'Z': qasmString += `z ${q_idx};\n`; break;
+                            case 'S': qasmString += `s ${q_idx};\n`; break;
+                            case 'T': qasmString += `t ${q_idx};\n`; break;
+                            case 'Measure': qasmString += `measure ${q_idx} -> ${c_idx};\n`; break;
+                            case 'CNOT-C':
+                                let targetQ = -1;
+                                for (let tq = 0; tq < circuit.qubits; tq++) {
+                                    if (circuit.gates[tq][c] === 'CNOT-T' && tq !== q) { targetQ = tq; break; }
+                                }
+                                if (targetQ !== -1) {
+                                    qasmString += `cx ${q_idx},q[${targetQ}];\n`;
+                                    processedMultiQubitInColumn.add(`${targetQ}-${c}`);
+                                } else { qasmString += `// Warning: CNOT-C at q[${q}],col[${c}] without target.\n`; }
+                                break;
+                            case 'CNOT-T': /* Handled by CNOT-C */ break;
+                            case 'SWAP':
+                                let partnerQ = -1;
+                                for (let pq = q + 1; pq < circuit.qubits; pq++) { // Look forward
+                                    if (circuit.gates[pq][c] === 'SWAP') { partnerQ = pq; break; }
+                                }
+                                if (partnerQ !== -1) {
+                                    qasmString += `swap ${q_idx},q[${partnerQ}];\n`;
+                                    processedMultiQubitInColumn.add(`${partnerQ}-${c}`);
+                                }
+                                // If no partner found looking forward, it's either an orphan or already processed (as the first qubit in pair)
+                                break;
+                            default: qasmString += `// Unknown gate '${gate}' at q[${q}],col[${c}]\n`;
+                        }
+                        processedMultiQubitInColumn.add(`${q}-${c}`);
+                    }
+                }
+                return qasmString;
+            }
+
+            async function runSimulationWithBackend() {
+                const qasmCode = generateQASM();
+
+                let htmlOutput = "<h3>Generated QASM 2.0:</h3>";
+                htmlOutput += `<pre class="whitespace-pre-wrap break-all text-sm">${qasmCode.replace(/</g, "<").replace(/>/g, ">")}</pre>`;
+                htmlOutput += "<hr class='my-4'>";
+                htmlOutput += "<h3>Simulation Results:</h3>";
+
+                simulationResultsDiv.innerHTML = htmlOutput + "<p class='text-blue-600 animate-pulse mt-2'>Sending QASM to backend and awaiting simulation results...</p>";
+                console.log("Generated QASM for Backend Simulation:\n", qasmCode);
+
+                try {
+                    const payload = {
+                        qasm: qasmCode,
+                        shots: 1024,
+                        // backend: "ibmq_qasm_simulator" // Optional: suggest a backend to your Flask app
+                    };
+
+                    const response = await fetch(FLASK_BACKEND_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const resultData = await response.json();
+
+                    // Rebuild HTML from QASM part to avoid losing it if server responds slowly
+                    htmlOutput = simulationResultsDiv.innerHTML.split("<hr class='my-4'>")[0] + "<hr class='my-4'>";
+                    htmlOutput += "<h3>Simulation Results:</h3>";
+
+                    if (!response.ok) {
+                        console.error("Backend error:", resultData);
+                        throw new Error(resultData.error || `Backend Error: ${response.status} ${response.statusText}`);
+                    }
+
+                    htmlOutput += `<p class="text-green-600"><strong>Status:</strong> ${resultData.message || 'Success!'}</p>`;
+                    if (resultData.job_id) { htmlOutput += `<p><strong>Job ID:</strong> ${resultData.job_id}</p>`; }
+                    htmlOutput += `<p><strong>Backend Used:</strong> ${resultData.backend_used || 'N/A'}</p>`;
+                    htmlOutput += `<p><strong>Shots:</strong> ${resultData.shots || 'N/A'}</p>`;
+                    htmlOutput += `<h4 class="font-semibold mt-2">Counts:</h4>`;
+
+                    if (resultData.counts && Object.keys(resultData.counts).length > 0) {
+                        htmlOutput += `<pre class="text-sm whitespace-pre-wrap break-all">${JSON.stringify(resultData.counts, null, 2)}</pre>`;
+                    } else {
+                        htmlOutput += `<p class="text-sm italic">No counts returned or circuit has no measurements / classical bits.</p>`;
+                    }
+
+                    simulationResultsDiv.innerHTML = htmlOutput;
+                    console.log("Backend Simulation Successful. Response:", resultData);
+
+                } catch (error) {
+                    console.error("Error during Backend Simulation or fetching results:", error);
+                    let errorHTML = simulationResultsDiv.innerHTML.split("<hr class='my-4'>")[0] + "<hr class='my-4'>";
+                    errorHTML += "<h3>Simulation Results:</h3>";
+                    errorHTML += `<p class='text-red-600 mt-2'><strong>Error:</strong> ${error.message}</p>`;
+                    errorHTML += `<p class='text-sm text-gray-600'>Ensure backend server (${FLASK_BACKEND_URL}) is running and accessible. Check browser console and backend server logs.</p>`;
+                    simulationResultsDiv.innerHTML = errorHTML;
+                }
+            }
+
+            // --- IMPORT/EXPORT ---
+            function exportCircuitToJSON() {
+                const circuitData = {
+                    qubits: circuit.qubits,
+                    columns: circuit.columns,
+                    gates: circuit.gates
+                };
+                const dataStr = JSON.stringify(circuitData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+                const exportFileDefaultName = `quantum-circuit-${new Date().toISOString().slice(0, 10)}.json`;
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            }
+
+            function showImportModal() {
+                importJsonTextarea.value = '';
+                importJsonModal.classList.remove('hidden');
+            }
+            function hideImportModal() { importJsonModal.classList.add('hidden'); }
+
+            function importCircuitFromJSON() {
+                try {
+                    const imported = JSON.parse(importJsonTextarea.value);
+                    if (!imported.qubits || !imported.columns || !Array.isArray(imported.gates)) {
+                        throw new Error('Invalid circuit data. Missing qubits, columns, or gates array.');
+                    }
+                    if (imported.gates.length !== imported.qubits || (imported.qubits > 0 && imported.gates[0].length !== imported.columns)) {
+                        throw new Error('Gate array dimensions do not match qubit and column counts.');
+                    }
+
+                    circuit.qubits = imported.qubits;
+                    circuit.columns = imported.columns;
+                    circuit.gates = imported.gates;
+
+                    qubitCountInput.value = circuit.qubits;
+                    columnCountInput.value = circuit.columns;
+
+                    clearGateSelection();
+                    renderCircuitGrid();
+                    hideImportModal();
+                    simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit imported. Run simulation.</p>';
+                } catch (error) {
+                    alert('Error importing circuit: ' + error.message);
+                }
+            }
+
+            // --- PREBUILT CIRCUITS ---
+            function loadPrebuiltCircuit() {
+                const circuitType = prebuiltCircuitsSelect.value;
+                if (!circuitType) return;
+                let newCircuitData;
+                switch (circuitType) {
+                    case 'bell':
+                        newCircuitData = { qubits: 2, columns: 2, gates: [['H', 'CNOT-C'], [null, 'CNOT-T']] };
+                        break;
+                    case 'ghz':
+                        newCircuitData = { qubits: 3, columns: 3, gates: [['H', 'CNOT-C', null], [null, 'CNOT-T', 'CNOT-C'], [null, null, 'CNOT-T']] };
+                        break;
+                    default: return;
+                }
+                circuit.qubits = newCircuitData.qubits;
+                circuit.columns = newCircuitData.columns;
+                circuit.gates = newCircuitData.gates;
+                qubitCountInput.value = circuit.qubits;
+                columnCountInput.value = circuit.columns;
+                clearGateSelection();
+                renderCircuitGrid();
+                simulationResultsDiv.innerHTML = `<p class="text-gray-500 italic">${circuitType} circuit loaded. Run simulation.</p>`;
+                prebuiltCircuitsSelect.value = ''; // Reset dropdown
+            }
+
+            // --- AI TOOLS (OpenRouter) ---
+            function showAiBuildModal() {
+                aiBuildPromptTextarea.value = '';
+                aiBuildModal.classList.remove('hidden');
+            }
+            function hideAiBuildModal() { aiBuildModal.classList.add('hidden'); }
+
+            async function buildCircuitWithAI() {
+                const userPrompt = aiBuildPromptTextarea.value.trim();
+                if (!userPrompt) { alert('Please describe the circuit.'); return; }
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                    alert("OpenRouter API Key not configured in the script. AI features disabled.");
+                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Build disabled: OpenRouter API Key not set.</p>";
+                    hideAiBuildModal();
+                    return;
+                }
+                hideAiBuildModal();
+                simulationResultsDiv.innerHTML = '<p class="text-blue-600 animate-pulse">Generating circuit with AI...</p>';
+
+                try {
+                    const response = await fetch(OPENROUTER_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                            'Content-Type': 'application/json',
+                            // OpenRouter specific headers if needed by your model choice
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Quantum Circuit Simulator'
+                        },
+                        body: JSON.stringify({
+                            model: "openai/gpt-3.5-turbo", // Or your preferred model
+                            messages: [
+                                { role: "system", content: `You are a quantum computing expert. Convert user's description into a JSON quantum circuit: {"qubits":int, "columns":int, "gates":array[qubit][column], "description":str}. Valid gates: H, X, Y, Z, S, T, Measure, CNOT-C, CNOT-T, SWAP. CNOT-C and CNOT-T must be in the same column on different qubits. SWAP must appear on both involved qubits in the same column.` },
+                                { role: "user", content: userPrompt }
+                            ],
+                            temperature: 0.3
+                        })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error?.message || 'AI API error');
+
+                    const aiResponseContent = data.choices[0].message.content;
+                    let circuitData;
+                    try { // Robust JSON parsing
+                        const jsonMatch = aiResponseContent.match(/```json\n([\s\S]*?)\n```/);
+                        circuitData = JSON.parse(jsonMatch ? jsonMatch[1] : aiResponseContent);
+                    } catch (e) { throw new Error('AI response was not valid JSON: ' + e.message + "\nResponse: " + aiResponseContent); }
+
+                    if (!circuitData.qubits || !circuitData.columns || !Array.isArray(circuitData.gates) || !circuitData.description) {
+                        throw new Error('AI response missing required fields.');
+                    }
+                    // Further validation of gate array dimensions
+                    if (circuitData.gates.length !== circuitData.qubits || (circuitData.qubits > 0 && circuitData.gates[0].length !== circuitData.columns)) {
+                        throw new Error('AI response gate array dimensions do not match qubit and column counts.');
+                    }
+
+                    circuit.qubits = circuitData.qubits;
+                    circuit.columns = circuitData.columns;
+                    circuit.gates = circuitData.gates;
+                    qubitCountInput.value = circuit.qubits;
+                    columnCountInput.value = circuit.columns;
+                    clearGateSelection();
+                    renderCircuitGrid();
+                    simulationResultsDiv.innerHTML = `<div><p class="font-medium text-green-600 mb-1">AI-Generated Circuit:</p><p class="text-sm mb-2">${circuitData.description}</p><button onclick="document.getElementById('run-simulation-btn').click()" class="px-3 py-1 bg-green-600 text-white rounded-md text-sm">Run Simulation</button></div>`;
+                } catch (error) {
+                    simulationResultsDiv.innerHTML = `<div class="text-red-600"><p class="font-medium">Error with AI Build:</p><p class="text-sm">${error.message}</p></div>`;
+                    console.error('AI Build error:', error);
+                }
+            }
+
+            async function explainCircuitAI() {
+                if (circuit.gates.every(row => row.every(gate => gate === null))) {
+                    alert('Circuit is empty. Add gates first.'); return;
+                }
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                    alert("OpenRouter API Key not configured. AI features disabled.");
+                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Explain disabled: OpenRouter API Key not set.</p>";
+                    return;
+                }
+                simulationResultsDiv.innerHTML = '<p class="text-blue-600 animate-pulse">AI is generating explanation...</p>';
+                try {
+                    const response = await fetch(OPENROUTER_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Quantum Circuit Simulator'
+                        },
+                        body: JSON.stringify({
+                            model: "openai/gpt-3.5-turbo",
+                            messages: [
+                                { role: "system", content: "You are a quantum computing educator. Explain the given circuit (qubits, columns, gates array) concisely in markdown. Identify standard algorithms if any." },
+                                { role: "user", content: `Explain this circuit: Qubits: ${circuit.qubits}, Columns: ${circuit.columns}, Gates: ${JSON.stringify(circuit.gates)}` }
+                            ],
+                            temperature: 0.4
+                        })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error?.message || 'AI API error');
+                    const explanation = data.choices[0].message.content;
+                    // Basic markdown to HTML for display. For full markdown, use a library.
+                    const formattedExplanation = explanation
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')     // Italics
+                        .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-200 p-2 rounded text-sm my-1">$1</pre>') // Code blocks
+                        .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 rounded text-sm">$1</code>') // Inline code
+                        .replace(/\n/g, '<br/>');
+
+                    simulationResultsDiv.innerHTML = `<div><p class="font-medium text-purple-600 mb-2">AI Circuit Explanation:</p><div class="prose prose-sm">${formattedExplanation}</div></div>`;
+                } catch (error) {
+                    simulationResultsDiv.innerHTML = `<div class="text-red-600"><p class="font-medium">Error with AI Explanation:</p><p class="text-sm">${error.message}</p></div>`;
+                    console.error('AI Explain error:', error);
+                }
+            }
+
+            // --- AI CHAT ---
+            function addMessageToChatUI(role, content, id = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
+                if (id) messageDiv.id = id;
+
+                // Basic markdown to HTML for display. For full markdown, use a library.
+                const formattedContent = content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="bg-gray-300 p-2 rounded text-sm my-1 whitespace-pre-wrap">${p1.trim()}</pre>`)
+                    .replace(/`(.*?)`/g, '<code class="bg-gray-300 px-1 rounded text-sm">$1</code>')
+                    .replace(/\n/g, '<br/>');
+
+                messageDiv.innerHTML = `<div class="prose prose-sm">${formattedContent}</div>`;
+                chatMessagesContainer.appendChild(messageDiv);
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; // Scroll to bottom
+            }
+
+            async function sendChatMessage() {
+                const userMessage = chatInputField.value.trim();
+                if (!userMessage) return;
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                    addMessageToChatUI('assistant', "AI Tutor disabled: OpenRouter API Key not configured in the script.");
+                    chatInputField.value = '';
+                    return;
+                }
+
+                addMessageToChatUI('user', userMessage);
+                aiChatHistory.push({ role: 'user', content: userMessage });
+                chatInputField.value = '';
+
+                const loadingId = 'ai-loading-' + Date.now();
+                addMessageToChatUI('assistant', '<span class="italic text-gray-500">Tutor is thinking...</span>', loadingId);
+
+                try {
+                    const response = await fetch(OPENROUTER_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Quantum Circuit Simulator'
+                        },
+                        body: JSON.stringify({
+                            model: "openai/gpt-3.5-turbo",
+                            messages: [
+                                { role: "system", content: "You are a Quantum Computing Tutor. Answer concisely in markdown. Explain concepts clearly for beginners." },
+                                ...aiChatHistory.slice(-10) // Send last 5 user/assistant pairs + system prompt
+                            ],
+                            temperature: 0.5
+                        })
+                    });
+                    const data = await response.json();
+                    const loadingElement = document.getElementById(loadingId);
+
+                    if (!response.ok) {
+                        const errorMsg = data.error?.message || 'AI chat API error';
+                        if (loadingElement) loadingElement.innerHTML = `<div class="prose prose-sm text-red-600">Error: ${errorMsg}</div>`;
+                        else addMessageToChatUI('assistant', `Error: ${errorMsg}`); // Fallback
+                        throw new Error(errorMsg);
+                    }
+
+                    const aiResponse = data.choices[0].message.content;
+                    aiChatHistory.push({ role: 'assistant', content: aiResponse });
+                    if (loadingElement) {
+                        // Update existing loading message with formatted response
+                        const formattedResponse = aiResponse
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                            .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="bg-gray-300 p-2 rounded text-sm my-1 whitespace-pre-wrap">${p1.trim()}</pre>`)
+                            .replace(/`(.*?)`/g, '<code class="bg-gray-300 px-1 rounded text-sm">$1</code>')
+                            .replace(/\n/g, '<br/>');
+                        loadingElement.innerHTML = `<div class="prose prose-sm">${formattedResponse}</div>`;
+                    } else { // Fallback if somehow loading element isn't there
+                        addMessageToChatUI('assistant', aiResponse);
+                    }
+
+                } catch (error) {
+                    console.error('AI Chat error:', error);
+                    const loadingElement = document.getElementById(loadingId);
+                    if (loadingElement) loadingElement.innerHTML = `<div class="prose prose-sm text-red-600">Chat Error: ${error.message}</div>`;
+                    else addMessageToChatUI('assistant', `Chat Error: ${error.message}`); // Fallback
+                }
+            }
+
+
+            // --- EVENT LISTENERS ---
+            function setupEventListeners() {
+                updateCircuitBtn.addEventListener('click', initializeCircuitState);
+
+                document.querySelectorAll('.gate-button').forEach(button => {
+                    button.addEventListener('click', function () {
+                        const gateType = this.getAttribute('data-gate');
+                        if (selectedGateType === gateType && !pendingMultiQubitOp) { // Deselect if same gate clicked again (and not mid-operation)
+                            clearGateSelection();
+                        } else {
+                            selectedGateType = gateType;
+                            pendingMultiQubitOp = null; // Clear pending op if a new gate type is selected from palette
+                            updateSelectedGateButtonStyle();
+                            updateGateStatusDisplay();
+                        }
+                    });
+                });
+
+                runSimulationBtn.addEventListener('click', runSimulationWithBackend);
+                clearCircuitBtn.addEventListener('click', clearFullCircuit);
+                exportCircuitBtn.addEventListener('click', exportCircuitToJSON);
+
+                // Import Modal Listeners
+                importCircuitBtn.addEventListener('click', showImportModal);
+                cancelImportJsonBtn.addEventListener('click', hideImportModal);
+                submitImportJsonBtn.addEventListener('click', importCircuitFromJSON);
+
+                prebuiltCircuitsSelect.addEventListener('change', loadPrebuiltCircuit);
+
+                // AI Tool Listeners
+                buildWithAiBtn.addEventListener('click', showAiBuildModal);
+                cancelAiBuildBtn.addEventListener('click', hideAiBuildModal);
+                submitAiBuildBtn.addEventListener('click', buildCircuitWithAI);
+                explainCircuitAiBtn.addEventListener('click', explainCircuitAI);
+
+                // Chat Listeners
+                sendChatBtn.addEventListener('click', sendChatMessage);
+                chatInputField.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter' && !e.shiftKey) { // Send on Enter, allow Shift+Enter for newline
+                        e.preventDefault(); // Prevent default Enter behavior (like newline in textarea)
+                        sendChatMessage();
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>
