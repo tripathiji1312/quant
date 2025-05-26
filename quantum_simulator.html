@@ -270,7 +270,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">AI Tools (OpenRouter API)</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">AI Tools (Gemini API)</label>
                     <div class="flex flex-wrap gap-2">
                         <button id="build-with-ai-btn"
                             class="px-4 py-2 bg-fuchsia-600 text-white rounded-md hover:bg-fuchsia-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-offset-2 shadow hover:shadow-md transition-all">Build
@@ -363,18 +363,20 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const OPENROUTER_API_KEY = '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';
-            const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+            const GEMINI_API_KEY = 'AIzaSyDYsp56kfUrkBA7cfvzlkabbVVSoF_Co4c'; // Your Gemini API Key
+            const GEMINI_API_URL_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
+            const GEMINI_MODEL = 'gemini-1.5-flash-latest'; // Or 'gemini-pro' or other suitable model
+
             const FLASK_BACKEND_URL_SIMULATE = 'http://127.0.0.1:5000/simulate';
             const FLASK_BACKEND_URL_STATEVECTOR = 'http://127.0.0.1:5000/get_statevector';
             const FLASK_BACKEND_URL_PROBABILITIES = 'http://127.0.0.1:5000/get_probabilities';
-            const YOUR_OPENROUTER_API_KEY_PLACEHOLDER = 'YOUR_OPENROUTER_API_KEY_HERE';
+            const YOUR_GEMINI_API_KEY_PLACEHOLDER = 'YOUR_GEMINI_API_KEY_HERE'; // For checks, though we're hardcoding above
 
             let circuit = { qubits: 2, columns: 4, gates: [] };
             let selectedGate = null;
             let pendingMultiQubitOp = null;
             let lastClickedCellCoords = null;
-            let aiChatHistory = [{ role: 'assistant', content: "Hello! I'm your Quantum Computing tutor. Ask me anything!" }];
+            let aiChatHistory = [{ role: 'model', content: "Hello! I'm your Quantum Computing tutor. Ask me anything!" }]; // Gemini uses 'model' for assistant
             let circuitHistory = [];
             const MAX_HISTORY_STATES = 20;
 
@@ -868,12 +870,13 @@
 
             function showAiBuildModal() { aiBuildPromptTextarea.value = ''; aiBuildModal.classList.remove('hidden'); }
             function hideAiBuildModal() { aiBuildModal.classList.add('hidden'); }
+
             async function buildCircuitWithAI() {
-                const userPrompt = aiBuildPromptTextarea.value.trim();
-                if (!userPrompt) { alert('Please describe the circuit.'); return; }
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
-                    alert("OpenRouter API Key not configured. AI features disabled.");
-                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Build disabled: OpenRouter API Key not set.</p>";
+                const userPromptText = aiBuildPromptTextarea.value.trim();
+                if (!userPromptText) { alert('Please describe the circuit.'); return; }
+                if (!GEMINI_API_KEY || GEMINI_API_KEY === YOUR_GEMINI_API_KEY_PLACEHOLDER) {
+                    alert("Gemini API Key not configured. AI features disabled.");
+                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Build disabled: Gemini API Key not set.</p>";
                     hideAiBuildModal();
                     return;
                 }
@@ -881,8 +884,8 @@
                 hideAiBuildModal();
                 simulationResultsDiv.innerHTML = '<p class="text-indigo-600 animate-pulse font-medium">Generating circuit with AI...</p>';
 
-                try {
-                    const systemPrompt = `You are a quantum computing expert. Convert user's description into a JSON quantum circuit.
+                const systemInstruction = `You are a quantum computing expert. Convert user's description into a JSON quantum circuit.
+Respond ONLY with the JSON object, without any surrounding text, comments, or markdown.
 The JSON structure should be: {"qubits":int, "columns":int, "gates":array[qubit][column], "description":str}.
 'gates' is a 2D array. Each element can be null (no gate), a string for a simple gate, or an object for a parameterized gate.
 Valid simple gate strings: "H", "X", "Y", "Z", "S", "T", "Measure", "CNOT-C", "CNOT-T", "SWAP".
@@ -892,31 +895,38 @@ SWAP must appear on both involved qubits in the same column (two "SWAP" strings)
 Ensure the dimensions of the 'gates' array are correct (qubits rows, columns cols).
 Example for a 2-qubit Bell state with an RZ(pi/2) on q0 first:
 {"qubits": 2, "columns": 3, "description": "Bell state with initial RZ on q0.", "gates": [[{"type":"RZ", "angle":1.5708}, "H", "CNOT-C"], [null, null, "CNOT-T"]]}
-If the user doesn't specify enough columns, try to make it compact but readable. Max qubits 8, max columns 20.`;
+If the user doesn't specify enough columns, try to make it compact but readable. Max qubits 8, max columns 20.
+User's request will follow.`;
 
-                    const response = await fetch(OPENROUTER_API_URL, {
+                const fullPrompt = `${systemInstruction}\n\nUser's request: ${userPromptText}`;
+
+                try {
+                    const response = await fetch(`${GEMINI_API_URL_BASE}${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href,
-                            'X-Title': 'Quantum Circuit Simulator'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: "openai/gpt-3.5-turbo",
-                            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-                            temperature: 0.2
+                            contents: [{ role: "user", parts: [{ text: fullPrompt }] }],
+                            generationConfig: { temperature: 0.1, responseMimeType: "application/json" } // Request JSON output
                         })
                     });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error?.message || 'AI API error');
 
-                    const aiResponseContent = data.choices[0].message.content;
+                    const responseData = await response.json();
+
+                    if (!response.ok || !responseData.candidates || !responseData.candidates[0].content || !responseData.candidates[0].content.parts || !responseData.candidates[0].content.parts[0].text) {
+                        const errorDetail = responseData.error ? JSON.stringify(responseData.error) : (responseData.candidates && responseData.candidates[0].finishReason ? `Finish Reason: ${responseData.candidates[0].finishReason}` : 'Unknown AI API error');
+                        throw new Error(`AI API error: ${response.status} - ${errorDetail}`);
+                    }
+
+                    const aiResponseContent = responseData.candidates[0].content.parts[0].text;
                     let circuitData;
                     try {
+                        // The response should be clean JSON if responseMimeType worked.
+                        // If not, attempt to extract from markdown.
                         const jsonMatch = aiResponseContent.match(/```json\n([\s\S]*?)\n```/);
                         circuitData = JSON.parse(jsonMatch ? jsonMatch[1] : aiResponseContent);
-                    } catch (e) { throw new Error('AI response was not valid JSON: ' + e.message + "\nResponse: " + aiResponseContent); }
+
+                    } catch (e) { throw new Error('AI response was not valid JSON: ' + e.message + "\nRaw Response from AI: " + aiResponseContent); }
+
 
                     if (!circuitData.qubits || !circuitData.columns || !Array.isArray(circuitData.gates) || typeof circuitData.description !== 'string') {
                         throw new Error('AI response missing required fields (qubits, columns, gates, description).');
@@ -936,6 +946,7 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                             }
                         }
                     }
+
                     circuit.qubits = Math.min(8, Math.max(1, parseInt(circuitData.qubits) || 2));
                     circuit.columns = Math.min(20, Math.max(1, parseInt(circuitData.columns) || 4));
                     circuit.gates = circuitData.gates;
@@ -949,42 +960,47 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                     console.error('AI Build error:', error);
                 }
             }
+
             async function explainCircuitAI() {
                 if (circuit.gates.every(row => row.every(gateData => gateData === null))) {
                     alert('Circuit is empty. Add gates first.'); return;
                 }
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
-                    alert("OpenRouter API Key not configured. AI features disabled.");
-                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Explain disabled: OpenRouter API Key not set.</p>";
+                if (!GEMINI_API_KEY || GEMINI_API_KEY === YOUR_GEMINI_API_KEY_PLACEHOLDER) {
+                    alert("Gemini API Key not configured. AI features disabled.");
+                    simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Explain disabled: Gemini API Key not set.</p>";
                     return;
                 }
                 simulationResultsDiv.innerHTML = '<p class="text-indigo-600 animate-pulse font-medium">AI is generating explanation...</p>';
+
+                const systemPrompt = "You are a quantum computing educator. Explain the given circuit (qubits, columns, gates array) concisely in markdown. Gate objects like {\"type\":\"RX\", \"angle\":1.57} mean RX gate with angle 1.57 radians. Identify standard algorithms if any. Use clear, beginner-friendly language but be accurate.";
+                const userPrompt = `Explain this circuit: Qubits: ${circuit.qubits}, Columns: ${circuit.columns}, Gates: ${JSON.stringify(circuit.gates)}`;
+
+                const geminiContents = [
+                    { role: "user", parts: [{ text: systemPrompt }] },
+                    { role: "model", parts: [{ text: "Understood. I will explain the quantum circuit based on the provided data." }] },
+                    { role: "user", parts: [{ text: userPrompt }] }
+                ];
+
                 try {
-                    const response = await fetch(OPENROUTER_API_URL, {
+                    const response = await fetch(`${GEMINI_API_URL_BASE}${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href,
-                            'X-Title': 'Quantum Circuit Simulator'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: "openai/gpt-3.5-turbo",
-                            messages: [
-                                { role: "system", content: "You are a quantum computing educator. Explain the given circuit (qubits, columns, gates array) concisely in markdown. Gate objects like {\"type\":\"RX\", \"angle\":1.57} mean RX gate with angle 1.57 radians. Identify standard algorithms if any. Use clear, beginner-friendly language but be accurate." },
-                                { role: "user", content: `Explain this circuit: Qubits: ${circuit.qubits}, Columns: ${circuit.columns}, Gates: ${JSON.stringify(circuit.gates)}` }
-                            ],
-                            temperature: 0.4
+                            contents: geminiContents,
+                            generationConfig: { temperature: 0.4 }
                         })
                     });
                     const data = await response.json();
-                    if (!response.ok) throw new Error(data.error?.message || 'AI API error');
-                    const explanation = data.choices[0].message.content;
+                    if (!response.ok || !data.candidates || !data.candidates[0].content || !data.candidates[0].content.parts[0].text) {
+                        const errorDetail = data.error ? JSON.stringify(data.error) : (data.candidates && data.candidates[0].finishReason ? `Finish Reason: ${data.candidates[0].finishReason}` : 'Unknown AI API error');
+                        throw new Error(`AI API error: ${response.status} - ${errorDetail}`);
+                    }
+                    const explanation = data.candidates[0].content.parts[0].text;
 
                     const formattedExplanation = explanation
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                        .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-200 p-2 rounded text-sm my-1 whitespace-pre-wrap">$1</pre>')
+                        .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre class="bg-gray-200 p-2 rounded text-sm my-1 whitespace-pre-wrap">${p1.trim()}</pre>`)
                         .replace(/`(.*?)`/g, '<code class="bg-gray-200 px-1 rounded text-sm">$1</code>')
                         .replace(/\n/g, '<br/>');
 
@@ -994,8 +1010,10 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                     console.error('AI Explain error:', error);
                 }
             }
+
             function addMessageToChatUI(role, content, id = null) {
                 const messageDiv = document.createElement('div');
+                // Gemini uses 'user' and 'model' (model is like assistant)
                 messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
                 if (id) messageDiv.id = id;
 
@@ -1010,52 +1028,60 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                 chatMessagesContainer.appendChild(messageDiv);
                 chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
             }
+
             async function sendChatMessage() {
                 const userMessage = chatInputField.value.trim();
                 if (!userMessage) return;
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
-                    addMessageToChatUI('assistant', "AI Tutor disabled: OpenRouter API Key not configured in the script.");
+                if (!GEMINI_API_KEY || GEMINI_API_KEY === YOUR_GEMINI_API_KEY_PLACEHOLDER) {
+                    addMessageToChatUI('model', "AI Tutor disabled: Gemini API Key not configured in the script.");
                     chatInputField.value = '';
                     return;
                 }
 
                 addMessageToChatUI('user', userMessage);
-                aiChatHistory.push({ role: 'user', content: userMessage });
+                aiChatHistory.push({ role: 'user', parts: [{ text: userMessage }] }); // Gemini format
                 chatInputField.value = '';
 
                 const loadingId = 'ai-loading-' + Date.now();
-                addMessageToChatUI('assistant', '<span class="italic text-gray-600">Tutor is thinking...</span>', loadingId);
+                addMessageToChatUI('model', '<span class="italic text-gray-600">Tutor is thinking...</span>', loadingId);
+
+                // Prepare chat history for Gemini API (user/model alternation)
+                let geminiChatContents = [
+                    { role: "user", parts: [{ text: "You are a Quantum Computing Tutor. Answer concisely in markdown. Explain concepts clearly for beginners. If asked to write code, prefer Qiskit/Python examples unless specified." }] },
+                    { role: "model", parts: [{ text: "Understood. I will act as a Quantum Computing Tutor." }] }
+                ];
+                // Map existing history, ensuring correct roles
+                aiChatHistory.slice(-12).forEach(msg => {
+                    // The initial message in aiChatHistory is 'model', the rest should alternate
+                    if (msg.role === 'user' || msg.role === 'model') { // Check if it's already in Gemini format
+                        geminiChatContents.push({ role: msg.role, parts: msg.parts || [{ text: msg.content }] });
+                    } else if (msg.role === 'assistant') { // Convert from old format if necessary
+                        geminiChatContents.push({ role: 'model', parts: [{ text: msg.content }] });
+                    }
+                });
+
 
                 try {
-                    const response = await fetch(OPENROUTER_API_URL, {
+                    const response = await fetch(`${GEMINI_API_URL_BASE}${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': window.location.href,
-                            'X-Title': 'Quantum Circuit Simulator'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            model: "openai/gpt-3.5-turbo",
-                            messages: [
-                                { role: "system", content: "You are a Quantum Computing Tutor. Answer concisely in markdown. Explain concepts clearly for beginners. If asked to write code, prefer Qiskit/Python examples unless specified." },
-                                ...aiChatHistory.slice(-12)
-                            ],
-                            temperature: 0.5
+                            contents: geminiChatContents,
+                            generationConfig: { temperature: 0.5 }
                         })
                     });
                     const data = await response.json();
                     const loadingElement = document.getElementById(loadingId);
 
-                    if (!response.ok) {
-                        const errorMsg = data.error?.message || 'AI chat API error';
-                        if (loadingElement) loadingElement.innerHTML = `<div class="prose prose-sm text-red-600">Error: ${errorMsg}</div>`;
-                        else addMessageToChatUI('assistant', `Error: ${errorMsg}`);
-                        throw new Error(errorMsg);
+                    if (!response.ok || !data.candidates || !data.candidates[0].content || !data.candidates[0].content.parts[0].text) {
+                        const errorDetail = data.error ? JSON.stringify(data.error) : (data.candidates && data.candidates[0].finishReason ? `Finish Reason: ${data.candidates[0].finishReason}` : 'Unknown AI API error');
+                        if (loadingElement) loadingElement.innerHTML = `<div class="prose prose-sm text-red-600">Error: ${errorDetail}</div>`;
+                        else addMessageToChatUI('model', `Error: ${errorDetail}`);
+                        throw new Error(errorDetail);
                     }
 
-                    const aiResponse = data.choices[0].message.content;
-                    aiChatHistory.push({ role: 'assistant', content: aiResponse });
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    aiChatHistory.push({ role: 'model', parts: [{ text: aiResponse }] }); // Save in Gemini format
                     if (loadingElement) {
                         const formattedResponse = aiResponse
                             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -1065,14 +1091,14 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                             .replace(/\n/g, '<br/>');
                         loadingElement.innerHTML = `<div class="prose prose-sm max-w-none">${formattedResponse}</div>`;
                     } else {
-                        addMessageToChatUI('assistant', aiResponse);
+                        addMessageToChatUI('model', aiResponse);
                     }
 
                 } catch (error) {
                     console.error('AI Chat error:', error);
                     const loadingElement = document.getElementById(loadingId);
                     if (loadingElement) loadingElement.innerHTML = `<div class="prose prose-sm text-red-600">Chat Error: ${error.message}</div>`;
-                    else addMessageToChatUI('assistant', `Chat Error: ${error.message}`);
+                    else addMessageToChatUI('model', `Chat Error: ${error.message}`);
                 }
             }
 
