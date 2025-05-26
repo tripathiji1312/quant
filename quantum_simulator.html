@@ -281,9 +281,11 @@
             // --- CONFIGURATION ---
             // WARNING: Exposing API keys client-side is a security risk for production.
             // These should ideally be handled via a backend proxy for the AI features.
-            const OPENROUTER_API_KEY = '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'; 
+            const OPENROUTER_API_KEY = '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'; // <<< YOUR NEW KEY HERE
             const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
             const FLASK_BACKEND_URL = 'http://127.0.0.1:5000/simulate'; // Your Flask backend
+            const YOUR_OPENROUTER_API_KEY_PLACEHOLDER = 'YOUR_OPENROUTER_API_KEY_HERE'; // Placeholder for checks
+
 
             // --- STATE ---
             let circuit = {
@@ -722,7 +724,7 @@
             async function buildCircuitWithAI() {
                 const userPrompt = aiBuildPromptTextarea.value.trim();
                 if (!userPrompt) { alert('Please describe the circuit.'); return; }
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) { // <<< UPDATED CHECK
                     alert("OpenRouter API Key not configured in the script. AI features disabled.");
                     simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Build disabled: OpenRouter API Key not set.</p>";
                     hideAiBuildModal();
@@ -786,7 +788,7 @@
                 if (circuit.gates.every(row => row.every(gate => gate === null))) {
                     alert('Circuit is empty. Add gates first.'); return;
                 }
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) { // <<< UPDATED CHECK
                     alert("OpenRouter API Key not configured. AI features disabled.");
                     simulationResultsDiv.innerHTML = "<p class='text-red-500'>AI Explain disabled: OpenRouter API Key not set.</p>";
                     return;
@@ -796,7 +798,7 @@
                     const response = await fetch(OPENROUTER_API_URL, {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`, // <<< UPDATED TO USE CONSTANT
                             'Content-Type': 'application/json',
                             'HTTP-Referer': window.location.href,
                             'X-Title': 'Quantum Circuit Simulator'
@@ -850,7 +852,7 @@
             async function sendChatMessage() {
                 const userMessage = chatInputField.value.trim();
                 if (!userMessage) return;
-                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'YOUR_OPENROUTER_API_KEY_HERE') {
+                if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) { // Check against defined placeholder
                     addMessageToChatUI('assistant', "AI Tutor disabled: OpenRouter API Key not configured in the script.");
                     chatInputField.value = '';
                     return;
