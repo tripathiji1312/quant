@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Circuit Simulator</title>
+    <title>Enhanced Quantum Circuit Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -363,7 +363,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const OPENROUTER_API_KEY = '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';
+            const OPENROUTER_API_KEY = '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';
             const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
             const FLASK_BACKEND_URL_SIMULATE = 'http://127.0.0.1:5000/simulate';
             const FLASK_BACKEND_URL_STATEVECTOR = 'http://127.0.0.1:5000/get_statevector';
@@ -387,8 +387,8 @@
             const gateStatusSpan = document.getElementById('gate-status');
 
             const runSimulationBtn = document.getElementById('run-simulation-btn');
-            const getStatevectorBtn = document.getElementById('get-statevector-btn'); // New
-            const getProbabilitiesBtn = document.getElementById('get-probabilities-btn'); // New
+            const getStatevectorBtn = document.getElementById('get-statevector-btn');
+            const getProbabilitiesBtn = document.getElementById('get-probabilities-btn');
             const clearCircuitBtn = document.getElementById('clear-circuit-btn');
             const undoCircuitBtn = document.getElementById('undo-circuit-btn');
             const exportCircuitBtn = document.getElementById('export-circuit-btn');
@@ -573,7 +573,7 @@
                         const xPos = qubitLabelWidth + (c * cellWidth) + (cellWidth / 2) - 1.5;
                         const yTop = colHeaderHeight + (q1 * cellHeight) + (cellHeight / 2);
                         line.style.cssText = `left:${xPos}px; top:${yTop}px; height:${(q2 - q1) * cellHeight}px;`;
-                        if ((q2 - q1) * cellHeight > 0) circuitLinesContainer.appendChild(line); // only draw if different qubits
+                        if ((q2 - q1) * cellHeight > 0) circuitLinesContainer.appendChild(line);
                     }
                     if (swapQubits.length === 2) {
                         const q1 = swapQubits[0], q2 = swapQubits[1];
@@ -775,7 +775,7 @@
                     htmlOutput += `<h5 class="font-semibold mt-2 mb-1 text-gray-700">Probabilities:</h5>`;
                     if (resultData.probabilities && Object.keys(resultData.probabilities).length > 0) {
                         let probText = '<div class="space-y-1 text-xs">';
-                        const maxBarLength = 30; // Characters for the bar
+                        const maxBarLength = 30;
                         for (const basisState in resultData.probabilities) {
                             const prob = resultData.probabilities[basisState];
                             const barLength = Math.round(prob * maxBarLength);
@@ -792,8 +792,7 @@
                 }
             }
 
-
-            function exportCircuitToJSON() { /* ... (no changes needed from previous version) ... */
+            function exportCircuitToJSON() {
                 const circuitData = { qubits: circuit.qubits, columns: circuit.columns, gates: circuit.gates };
                 const dataStr = JSON.stringify(circuitData, null, 2);
                 const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -805,7 +804,7 @@
             }
             function showImportModal() { importJsonTextarea.value = ''; importJsonModal.classList.remove('hidden'); }
             function hideImportModal() { importJsonModal.classList.add('hidden'); }
-            function importCircuitFromJSON() { /* ... (no changes needed from previous version) ... */
+            function importCircuitFromJSON() {
                 saveCircuitState();
                 try {
                     const imported = JSON.parse(importJsonTextarea.value);
@@ -831,7 +830,7 @@
                     alert('Error importing circuit: ' + error.message);
                 }
             }
-            function loadPrebuiltCircuit() { /* ... (no changes needed from previous version, but ensure gates match new format if needed) ... */
+            function loadPrebuiltCircuit() {
                 const circuitType = prebuiltCircuitsSelect.value;
                 if (!circuitType) return;
                 saveCircuitState();
@@ -846,7 +845,7 @@
                     case 'teleport':
                         newCircuitData = {
                             qubits: 3, columns: 7,
-                            gates: [ // Q0=psi, Q1=Alice, Q2=Bob
+                            gates: [
                                 [{ type: 'RX', angle: 0.785 }, 'H', 'CNOT-C', null, 'H', 'Measure', null],
                                 ['H', 'CNOT-C', 'CNOT-T', 'Measure', null, null, 'X'],
                                 ['CNOT-T', null, null, 'Measure', null, null, 'Z']
@@ -869,7 +868,7 @@
 
             function showAiBuildModal() { aiBuildPromptTextarea.value = ''; aiBuildModal.classList.remove('hidden'); }
             function hideAiBuildModal() { aiBuildModal.classList.add('hidden'); }
-            async function buildCircuitWithAI() { /* ... (no major changes, ensure system prompt for AI handles new gate object format) ... */
+            async function buildCircuitWithAI() {
                 const userPrompt = aiBuildPromptTextarea.value.trim();
                 if (!userPrompt) { alert('Please describe the circuit.'); return; }
                 if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
@@ -926,8 +925,8 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                         (circuitData.qubits > 0 && circuitData.gates.some(row => !Array.isArray(row) || row.length !== circuitData.columns))) {
                         throw new Error('AI response gate array dimensions do not match qubit and column counts or is malformed.');
                     }
-                    for (let q_val = 0; q_val < circuitData.qubits; q_val++) { // Renamed loop variable
-                        for (let c_val = 0; c_val < circuitData.columns; c_val++) { // Renamed loop variable
+                    for (let q_val = 0; q_val < circuitData.qubits; q_val++) {
+                        for (let c_val = 0; c_val < circuitData.columns; c_val++) {
                             const gate = circuitData.gates[q_val][c_val];
                             if (gate !== null && typeof gate !== 'string' && (typeof gate !== 'object' || !gate.type)) {
                                 throw new Error(`Invalid gate data at Q${q_val}, C${c_val}: ${JSON.stringify(gate)}`);
@@ -950,7 +949,7 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                     console.error('AI Build error:', error);
                 }
             }
-            async function explainCircuitAI() { /* ... (no changes, ensure system prompt for AI handles new gate object format) ... */
+            async function explainCircuitAI() {
                 if (circuit.gates.every(row => row.every(gateData => gateData === null))) {
                     alert('Circuit is empty. Add gates first.'); return;
                 }
@@ -995,7 +994,7 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                     console.error('AI Explain error:', error);
                 }
             }
-            function addMessageToChatUI(role, content, id = null) { /* ... (no changes) ... */
+            function addMessageToChatUI(role, content, id = null) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
                 if (id) messageDiv.id = id;
@@ -1011,7 +1010,7 @@ If the user doesn't specify enough columns, try to make it compact but readable.
                 chatMessagesContainer.appendChild(messageDiv);
                 chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
             }
-            async function sendChatMessage() { /* ... (no changes) ... */
+            async function sendChatMessage() {
                 const userMessage = chatInputField.value.trim();
                 if (!userMessage) return;
                 if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
