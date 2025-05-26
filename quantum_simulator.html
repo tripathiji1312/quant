@@ -7,10 +7,8 @@
     <title>Enhanced Quantum Circuit Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* --- Base & Layout --- */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            /* --- MODIFIED: Nicer font --- */
         }
 
         .gate {
@@ -20,19 +18,15 @@
             align-items: center;
             justify-content: center;
             border-radius: 8px;
-            /* --- MODIFIED: Softer rounding --- */
             cursor: pointer;
             transition: all 0.2s ease-in-out;
-            /* --- MODIFIED: Smoother transition --- */
             font-size: 0.8rem;
             font-weight: 500;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-            /* --- NEW: Subtle shadow --- */
         }
 
         .gate:hover {
             transform: scale(1.1) translateY(-1px);
-            /* --- MODIFIED: More engaging hover --- */
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
@@ -40,24 +34,26 @@
             width: 50px;
             height: 50px;
             border: 1px solid #d1d5db;
-            /* --- MODIFIED: Slightly darker border --- */
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             position: relative;
-            /* --- NEW: For connecting lines --- */
             transition: background-color 0.2s;
         }
 
+        .circuit-cell:focus {
+            outline: 2px solid #2563eb;
+            outline-offset: 1px;
+        }
+
+
         .circuit-cell:hover {
             background-color: #e5e7eb;
-            /* --- MODIFIED: Softer hover --- */
         }
 
         .circuit-cell.selected {
             background-color: #bfdbfe;
-            /* --- MODIFIED: Clearer selection --- */
             border-color: #2563eb;
             outline: 2px solid #2563eb;
             outline-offset: -1px;
@@ -65,29 +61,23 @@
 
         .circuit-cell.has-gate {
             background-color: #e0f2fe;
-            /* Light blue, can vary based on gate */
         }
 
         .circuit-cell.pending-control {
             background-color: #fef3c7;
-            /* Lighter yellow */
             border: 2px dashed #f59e0b;
-            /* Dashed border for pending */
         }
 
-        /* --- MODIFIED: Chat message styling --- */
         .chat-message {
             max-width: 85%;
             padding: 0.75rem 1rem;
             border-radius: 1.25rem;
-            /* Softer bubbles */
             margin-bottom: 0.75rem;
             line-height: 1.5;
         }
 
         .user-message {
             background-color: #2563eb;
-            /* Vibrant blue */
             color: white;
             margin-left: auto;
             border-bottom-right-radius: 0.5rem;
@@ -95,7 +85,6 @@
 
         .ai-message {
             background-color: #e5e7eb;
-            /* Light gray */
             color: #1f2937;
             margin-right: auto;
             border-bottom-left-radius: 0.5rem;
@@ -122,13 +111,10 @@
 
         .quantum-state {
             font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
-            /* --- MODIFIED: Better mono stack --- */
             white-space: pre-wrap;
             background-color: #f9fafb;
-            /* Lighter gray */
             padding: 1rem;
             border-radius: 0.375rem;
-            /* Tailwind's rounded-md */
             border: 1px solid #e5e7eb;
             max-height: 400px;
             overflow-y: auto;
@@ -136,11 +122,9 @@
 
         .gate-button.selected-gate-button {
             outline: 3px solid #3b82f6;
-            /* --- MODIFIED: Thicker outline for selected gate tool --- */
             outline-offset: 1px;
             transform: scale(1.05);
             background-color: #93c5fd !important;
-            /* Force a highlight */
         }
 
         .prose {
@@ -152,55 +136,53 @@
             line-height: 1.4rem;
         }
 
-        /* --- NEW: Styles for connecting lines --- */
         .control-line {
             position: absolute;
             background-color: #3b82f6;
-            /* Blue-600 */
             width: 3px;
             z-index: 5;
-            /* Below gates but above cell background */
             pointer-events: none;
-            /* Lines should not be clickable */
         }
 
         #circuit-grid-container {
             position: relative;
-            /* For absolute positioning of lines */
+        }
+
+        .parameterized-gate-text {
+            font-size: 0.65rem;
+            /* Smaller text for angles */
+            display: block;
+            line-height: 1;
+            margin-top: 2px;
         }
     </style>
 </head>
 
-<body class="bg-gray-100 min-h-screen"> {/* --- MODIFIED: Slightly darker page background --- */}
+<body class="bg-gray-100 min-h-screen">
     <div class="container mx-auto px-4 py-8">
-        <header class="mb-10 text-center"> {/* --- MODIFIED: Centered header --- */}
-            <h1 class="text-4xl font-bold text-blue-700 mb-3">Quantum Circuit Simulator</h1> {/* --- MODIFIED: Larger,
-            bolder --- */}
-            <p class="text-gray-700 text-lg">Visualize circuits, generate QASM, simulate, and learn with AI.</p> {/* ---
-            MODIFIED: Clearer subtext --- */}
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl font-bold text-blue-700 mb-3">Quantum Circuit Simulator</h1>
+            <p class="text-gray-700 text-lg">Visualize circuits, generate QASM, simulate, and learn with AI.</p>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6"> {/* --- MODIFIED: Reduced gap slightly --- */}
-            <!-- Left Panel - Controls -->
-            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6 space-y-6"> {/* --- MODIFIED: Softer shadow,
-                more padding --- */}
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">Circuit Controls</h2> {/* ---
-                MODIFIED: Larger, border --- */}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6 space-y-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">Circuit Controls</h2>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Circuit Setup</label>
+                    <label for="qubit-count" class="block text-sm font-medium text-gray-700 mb-1">Circuit Setup</label>
                     <div class="flex space-x-2 items-end">
                         <div class="flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">Qubits</label>
+                            <label for="qubit-count" class="block text-xs text-gray-500 mb-1">Qubits</label>
                             <input type="number" id="qubit-count" min="1" max="8" value="2"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
                         <div class="flex-1">
-                            <label class="block text-xs text-gray-500 mb-1">Columns</label>
+                            <label for="column-count" class="block text-xs text-gray-500 mb-1">Columns</label>
                             <input type="number" id="column-count" min="1" max="20" value="4"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         </div>
-                        <button id="update-circuit-btn"
+                        <button id="update-circuit-btn" aria-label="Update circuit dimensions"
                             class="px-3 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm shadow hover:shadow-md transition-all">
                             Update
                         </button>
@@ -209,30 +191,34 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Quantum Gates <span id="gate-status"
-                            class="text-xs text-gray-500 ml-2 italic"></span></label> {/* --- MODIFIED: Italic status
-                    --- */}
-                    <div class="grid grid-cols-4 gap-3"> {/* --- MODIFIED: Increased gap --- */}
-                        <button data-gate="H"
+                            class="text-xs text-gray-500 ml-2 italic"></span></label>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button data-gate="H" aria-label="Hadamard Gate"
                             class="gate gate-button bg-purple-200 text-purple-800 hover:bg-purple-300">H</button>
-                        <button data-gate="X"
+                        <button data-gate="X" aria-label="Pauli-X Gate"
                             class="gate gate-button bg-red-200 text-red-800 hover:bg-red-300">X</button>
-                        <button data-gate="Y"
+                        <button data-gate="Y" aria-label="Pauli-Y Gate"
                             class="gate gate-button bg-yellow-200 text-yellow-800 hover:bg-yellow-300">Y</button>
-                        <button data-gate="Z"
+                        <button data-gate="Z" aria-label="Pauli-Z Gate"
                             class="gate gate-button bg-green-200 text-green-800 hover:bg-green-300">Z</button>
-                        <button data-gate="CNOT"
-                            class="gate gate-button bg-blue-200 text-blue-800 hover:bg-blue-300">CNOT</button>
-                        <button data-gate="SWAP"
-                            class="gate gate-button bg-indigo-200 text-indigo-800 hover:bg-indigo-300">SWAP</button>
-                        <button data-gate="S"
+                        <button data-gate="S" aria-label="S Gate"
                             class="gate gate-button bg-cyan-200 text-cyan-800 hover:bg-cyan-300">S</button>
-                        <button data-gate="T"
+                        <button data-gate="T" aria-label="T Gate"
                             class="gate gate-button bg-amber-200 text-amber-800 hover:bg-amber-300">T</button>
-                        <button data-gate="Measure"
+                        <button data-gate="RX" aria-label="RX Gate (Rotation X)"
+                            class="gate gate-button bg-rose-200 text-rose-800 hover:bg-rose-300">RX</button>
+                        <button data-gate="RY" aria-label="RY Gate (Rotation Y)"
+                            class="gate gate-button bg-teal-200 text-teal-800 hover:bg-teal-300">RY</button>
+                        <button data-gate="RZ" aria-label="RZ Gate (Rotation Z)"
+                            class="gate gate-button bg-lime-200 text-lime-800 hover:bg-lime-300">RZ</button>
+                        <button data-gate="CNOT" aria-label="Controlled-NOT Gate"
+                            class="gate gate-button bg-blue-200 text-blue-800 hover:bg-blue-300">CNOT</button>
+                        <button data-gate="SWAP" aria-label="SWAP Gate"
+                            class="gate gate-button bg-indigo-200 text-indigo-800 hover:bg-indigo-300">SWAP</button>
+                        <button data-gate="Measure" aria-label="Measurement"
                             class="gate gate-button bg-gray-300 text-gray-800 hover:bg-gray-400">M</button>
-                        <button data-gate="CLEAR"
-                            class="gate gate-button bg-pink-200 text-pink-800 hover:bg-pink-300">Del</button> {/* ---
-                        MODIFIED: Color for delete --- */}
+                        <button data-gate="CLEAR" aria-label="Delete Gate"
+                            class="gate gate-button bg-pink-200 text-pink-800 hover:bg-pink-300">Del</button>
                     </div>
                 </div>
 
@@ -244,10 +230,9 @@
                             Simulation</button>
                         <button id="clear-circuit-btn"
                             class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 shadow hover:shadow-md transition-all">Clear
-                            All</button> {/* --- MODIFIED: Red for clear --- */}
+                            All</button>
                         <button id="undo-circuit-btn"
                             class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 shadow hover:shadow-md transition-all">Undo</button>
-                        {/* --- NEW: Undo Button --- */}
                         <button id="export-circuit-btn"
                             class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 shadow hover:shadow-md transition-all">Export
                             JSON</button>
@@ -258,14 +243,14 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Prebuilt Circuits</label>
+                    <label for="prebuilt-circuits-select" class="block text-sm font-medium text-gray-700 mb-2">Prebuilt
+                        Circuits</label>
                     <select id="prebuilt-circuits-select"
                         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
                         <option value="">Select a circuit...</option>
                         <option value="bell">Bell State (2 qubits)</option>
                         <option value="ghz">GHZ State (3 qubits)</option>
-                        <option value="teleport">Quantum Teleportation (3 qubits)</option> {/* --- NEW: More prebuilt
-                        --- */}
+                        <option value="teleport">Quantum Teleportation (3 qubits)</option>
                     </select>
                 </div>
 
@@ -282,63 +267,55 @@
                 </div>
             </div>
 
-            <!-- Middle Panel - Circuit -->
-            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6"> {/* --- MODIFIED: Softer shadow, more padding
-                --- */}
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">Quantum Circuit</h2>
                 <div id="circuit-grid-container"
-                    class="overflow-auto mb-4 border border-gray-200 rounded-md p-1 bg-gray-50"> {/* --- MODIFIED:
-                    Border and bg for grid --- */}
-                    {/* Circuit grid will be generated here */}
+                    class="overflow-auto mb-4 border border-gray-200 rounded-md p-1 bg-gray-50" role="grid"
+                    aria-label="Quantum Circuit Grid">
                 </div>
                 <div id="circuit-lines-container" class="absolute top-0 left-0 w-full h-full pointer-events-none z-[5]">
-                    {/* Connecting lines will be drawn here */}
                 </div>
 
 
                 <div>
-                    <h3 class="text-xl font-medium text-gray-700 mb-2">QASM & Simulation Results</h3> {/* --- MODIFIED:
-                    Larger --- */}
-                    <div id="simulation-results-div" class="quantum-state min-h-56 p-4 bg-gray-50 rounded-lg"> {/* ---
-                        MODIFIED: Consistent styling --- */}
+                    <h3 id="qasm-results-heading" class="text-xl font-medium text-gray-700 mb-2">QASM & Simulation
+                        Results</h3>
+                    <div id="simulation-results-div" class="quantum-state min-h-56 p-4 bg-gray-50 rounded-lg"
+                        aria-labelledby="qasm-results-heading">
                         <p class="text-gray-500 italic">Generated QASM and simulation results will appear here.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Panel - AI Chat -->
-            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6 flex flex-col"> {/* --- MODIFIED: Softer shadow,
-                more padding, flex for chat --- */}
-                <h2 class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">Quantum Tutor</h2>
+            <div class="lg:col-span-1 bg-white rounded-xl shadow-lg p-6 flex flex-col">
+                <h2 id="chat-heading" class="text-2xl font-semibold mb-4 text-gray-800 border-b pb-2">Quantum Tutor</h2>
                 <div id="chat-messages-container"
-                    class="flex-grow h-96 overflow-y-auto mb-4 space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    {/* --- MODIFIED: Consistent style --- */}
+                    class="flex-grow h-96 overflow-y-auto mb-4 space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    role="log" aria-labelledby="chat-heading">
                     <div class="ai-message prose prose-sm">
                         <p>Hello! I'm your Quantum Computing tutor. Ask me anything about quantum circuits, gates, or
                             algorithms. How can I assist you today?</p>
                     </div>
                 </div>
-                <div class="flex mt-auto"> {/* --- MODIFIED: Push to bottom --- */}
+                <div class="flex mt-auto">
                     <input id="chat-input-field" type="text" placeholder="Ask a quantum question..."
+                        aria-label="Chat input for Quantum Tutor"
                         class="flex-1 px-4 py-2.5 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                    {/* --- MODIFIED: Larger, rounded-lg --- */}
-                    <button id="send-chat-btn"
+                    <button id="send-chat-btn" aria-label="Send chat message"
                         class="px-5 py-2.5 bg-indigo-600 text-white rounded-r-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 shadow hover:shadow-md transition-all">Send</button>
-                    {/* --- MODIFIED: Consistent style --- */}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal for AI Build -->
     <div id="ai-build-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4"> {/* --- MODIFIED:
-        Darker overlay --- */}
-        <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl"> {/* --- MODIFIED: Larger, shadow --- */}
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Build Circuit with AI</h3>
+        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4" role="dialog"
+        aria-modal="true" aria-labelledby="ai-build-modal-heading">
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl">
+            <h3 id="ai-build-modal-heading" class="text-xl font-semibold text-gray-800 mb-4">Build Circuit with AI</h3>
             <p class="text-sm text-gray-600 mb-4">Describe the quantum circuit you want to create (e.g., "a 3-qubit GHZ
                 state" or "apply Hadamard to qubit 0, then CNOT from 0 to 1").</p>
-            <textarea id="ai-build-prompt-textarea" rows="4"
+            <textarea id="ai-build-prompt-textarea" rows="4" aria-label="AI circuit description prompt"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4"
                 placeholder="e.g., Create a 2-qubit Bell state"></textarea>
             <div class="flex justify-end space-x-3">
@@ -350,13 +327,13 @@
         </div>
     </div>
 
-    <!-- Modal for Import JSON -->
     <div id="import-json-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4">
+        class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center hidden z-50 p-4" role="dialog"
+        aria-modal="true" aria-labelledby="import-json-modal-heading">
         <div class="bg-white rounded-lg p-6 w-full max-w-lg shadow-xl">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">Import Circuit JSON</h3>
+            <h3 id="import-json-modal-heading" class="text-xl font-semibold text-gray-800 mb-4">Import Circuit JSON</h3>
             <p class="text-sm text-gray-600 mb-4">Paste the circuit JSON data:</p>
-            <textarea id="import-json-textarea" rows="6"
+            <textarea id="import-json-textarea" rows="6" aria-label="Paste circuit JSON data here"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 mb-4 font-mono text-sm"></textarea>
             <div class="flex justify-end space-x-3">
                 <button id="cancel-import-json-btn"
@@ -370,41 +347,37 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // --- CONFIGURATION ---
             const OPENROUTER_API_KEY = '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';
             const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
             const FLASK_BACKEND_URL = 'http://127.0.0.1:5000/simulate';
             const YOUR_OPENROUTER_API_KEY_PLACEHOLDER = 'YOUR_OPENROUTER_API_KEY_HERE';
 
-            // --- STATE ---
             let circuit = {
                 qubits: 2,
                 columns: 4,
                 gates: []
             };
-            let selectedGateType = null;
+            let selectedGate = null;
             let pendingMultiQubitOp = null;
             let lastClickedCellCoords = null;
             let aiChatHistory = [
                 { role: 'assistant', content: "Hello! I'm your Quantum Computing tutor. Ask me anything!" }
             ];
-            // --- NEW: Undo History ---
             let circuitHistory = [];
             const MAX_HISTORY_STATES = 20;
 
 
-            // --- DOM ELEMENTS ---
             const qubitCountInput = document.getElementById('qubit-count');
             const columnCountInput = document.getElementById('column-count');
             const updateCircuitBtn = document.getElementById('update-circuit-btn');
             const circuitGridContainer = document.getElementById('circuit-grid-container');
-            const circuitLinesContainer = document.getElementById('circuit-lines-container'); // --- NEW ---
+            const circuitLinesContainer = document.getElementById('circuit-lines-container');
             const simulationResultsDiv = document.getElementById('simulation-results-div');
             const gateStatusSpan = document.getElementById('gate-status');
 
             const runSimulationBtn = document.getElementById('run-simulation-btn');
             const clearCircuitBtn = document.getElementById('clear-circuit-btn');
-            const undoCircuitBtn = document.getElementById('undo-circuit-btn'); // --- NEW ---
+            const undoCircuitBtn = document.getElementById('undo-circuit-btn');
             const exportCircuitBtn = document.getElementById('export-circuit-btn');
             const importCircuitBtn = document.getElementById('import-circuit-btn');
             const prebuiltCircuitsSelect = document.getElementById('prebuilt-circuits-select');
@@ -425,16 +398,13 @@
             const chatInputField = document.getElementById('chat-input-field');
             const sendChatBtn = document.getElementById('send-chat-btn');
 
-            // --- INITIALIZATION ---
             initializeCircuitState();
             setupEventListeners();
 
-            // --- NEW: Circuit History Management ---
             function saveCircuitState() {
                 if (circuitHistory.length >= MAX_HISTORY_STATES) {
-                    circuitHistory.shift(); // Remove oldest state
+                    circuitHistory.shift();
                 }
-                // Deep copy of the gates array, and current dimensions
                 const stateToSave = {
                     qubits: circuit.qubits,
                     columns: circuit.columns,
@@ -445,22 +415,21 @@
             }
 
             function undoLastAction() {
-                if (circuitHistory.length > 1) { // Keep the initial empty state as a baseline if needed, or allow undo to initial
-                    circuitHistory.pop(); // Remove current state
+                if (circuitHistory.length > 1) {
+                    circuitHistory.pop();
                     const prevState = circuitHistory[circuitHistory.length - 1];
 
                     circuit.qubits = prevState.qubits;
                     circuit.columns = prevState.columns;
-                    circuit.gates = JSON.parse(JSON.stringify(prevState.gates)); // Deep copy
+                    circuit.gates = JSON.parse(JSON.stringify(prevState.gates));
 
-                    // Update UI elements that reflect qubits/columns
                     qubitCountInput.value = circuit.qubits;
                     columnCountInput.value = circuit.columns;
 
-                    clearGateSelection(); // Reset any pending operations
+                    clearGateSelection();
                     renderCircuitGrid();
                     simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit state restored. Run simulation if needed.</p>';
-                } else if (circuitHistory.length === 1) { // Last state before empty
+                } else if (circuitHistory.length === 1) {
                     const initialEmptyState = circuitHistory[0];
                     circuit.qubits = initialEmptyState.qubits;
                     circuit.columns = initialEmptyState.columns;
@@ -469,10 +438,9 @@
                     columnCountInput.value = circuit.columns;
                     clearGateSelection();
                     renderCircuitGrid();
-                    simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit reset to initial (likely empty) state.</p>';
-                    circuitHistory = []; // Clear history as we are at the "true" initial
-                }
-                else {
+                    simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit reset to initial state.</p>';
+                    circuitHistory = [];
+                } else {
                     alert("No more actions to undo.");
                 }
                 updateUndoButtonState();
@@ -485,17 +453,16 @@
             }
 
 
-            // --- CORE CIRCUIT LOGIC ---
             function initializeCircuitState(fromUserAction = false) {
-                if (fromUserAction) saveCircuitState(); // Save state before updating if triggered by user (e.g. update button)
+                if (fromUserAction) saveCircuitState();
 
                 circuit.qubits = parseInt(qubitCountInput.value);
                 circuit.columns = parseInt(columnCountInput.value);
                 circuit.gates = Array(circuit.qubits).fill(null).map(() => Array(circuit.columns).fill(null));
 
-                if (!fromUserAction || circuitHistory.length === 0) { // If initial load or history is empty
-                    circuitHistory = []; // Reset history
-                    saveCircuitState(); // Save this initial empty/new state
+                if (!fromUserAction || circuitHistory.length === 0) {
+                    circuitHistory = [];
+                    saveCircuitState();
                 }
                 clearGateSelection();
                 renderCircuitGrid();
@@ -504,10 +471,10 @@
 
             function renderCircuitGrid() {
                 circuitGridContainer.innerHTML = '';
-                circuitLinesContainer.innerHTML = ''; // --- NEW: Clear lines ---
+                circuitLinesContainer.innerHTML = '';
 
                 const headerDiv = document.createElement('div');
-                headerDiv.className = 'flex sticky top-0 bg-gray-50 z-20'; // --- MODIFIED: Sticky header for grid scroll ---
+                headerDiv.className = 'flex sticky top-0 bg-gray-50 z-20';
                 const qubitLabelHeader = document.createElement('div');
                 qubitLabelHeader.className = 'w-16 h-10 flex items-center justify-center text-xs text-gray-600 font-medium sticky left-0 bg-gray-50 z-10';
                 qubitLabelHeader.textContent = 'Qubit';
@@ -524,7 +491,7 @@
                 for (let q = 0; q < circuit.qubits; q++) {
                     const rowDiv = document.createElement('div');
                     rowDiv.className = 'flex';
-                    rowDiv.style.position = 'relative'; // For line anchor
+                    rowDiv.style.position = 'relative';
 
                     const qubitLabel = document.createElement('div');
                     qubitLabel.className = 'w-16 h-[50px] flex items-center justify-center text-sm font-medium text-gray-700 sticky left-0 bg-gray-50 z-10 border-r border-gray-200';
@@ -536,81 +503,116 @@
                         cellDiv.className = 'circuit-cell';
                         cellDiv.dataset.qubit = q;
                         cellDiv.dataset.column = c;
-                        cellDiv.id = `cell-${q}-${c}`; // --- NEW: ID for line targeting ---
+                        cellDiv.id = `cell-${q}-${c}`;
+                        cellDiv.setAttribute('role', 'button');
+                        cellDiv.setAttribute('tabindex', '0');
+                        cellDiv.setAttribute('aria-label', `Circuit cell Qubit ${q}, Column ${c}`);
+
 
                         if (lastClickedCellCoords && lastClickedCellCoords.qubit === q && lastClickedCellCoords.column === c) {
                             cellDiv.classList.add('selected');
                         }
 
-                        const gateSymbol = circuit.gates[q][c];
-                        if (gateSymbol) {
+                        const gateData = circuit.gates[q][c];
+                        if (gateData) {
                             const gateDiv = document.createElement('div');
-                            let displaySymbol = gateSymbol;
+                            let displaySymbol = '';
                             let bgColor = 'bg-sky-100'; let textColor = 'text-sky-800';
+                            let gateType = '';
+                            let gateAngle = null;
 
-                            if (gateSymbol === 'H') { bgColor = 'bg-purple-200'; textColor = 'text-purple-800'; }
-                            else if (gateSymbol === 'X') { bgColor = 'bg-red-200'; textColor = 'text-red-800'; }
-                            else if (gateSymbol === 'Y') { bgColor = 'bg-yellow-200'; textColor = 'text-yellow-800'; }
-                            else if (gateSymbol === 'Z') { bgColor = 'bg-green-200'; textColor = 'text-green-800'; }
-                            else if (gateSymbol === 'S') { bgColor = 'bg-cyan-200'; textColor = 'text-cyan-800'; }
-                            else if (gateSymbol === 'T') { bgColor = 'bg-amber-200'; textColor = 'text-amber-800'; }
-                            else if (gateSymbol === 'Measure') { displaySymbol = 'M'; bgColor = 'bg-gray-300'; textColor = 'text-gray-800'; }
-                            else if (gateSymbol === 'CNOT-C') { displaySymbol = '●'; bgColor = 'bg-blue-300'; textColor = 'text-blue-900'; } // --- MODIFIED: Darker for control ---
-                            else if (gateSymbol === 'CNOT-T') { displaySymbol = '⊕'; bgColor = 'bg-blue-200'; textColor = 'text-blue-800'; }
-                            else if (gateSymbol === 'SWAP') { displaySymbol = '✕'; bgColor = 'bg-indigo-200'; textColor = 'text-indigo-800'; }
+                            if (typeof gateData === 'string') {
+                                gateType = gateData;
+                                displaySymbol = gateType;
+                            } else if (typeof gateData === 'object' && gateData.type) {
+                                gateType = gateData.type;
+                                gateAngle = gateData.angle;
+                                displaySymbol = `${gateType}`;
+                            }
 
-                            cellDiv.classList.add(bgColor.replace('bg-', 'border-') + '-focus', 'has-gate'); // For better focus indication
-                            gateDiv.className = `gate ${bgColor} ${textColor}`;
-                            gateDiv.textContent = displaySymbol;
+
+                            if (gateType === 'H') { bgColor = 'bg-purple-200'; textColor = 'text-purple-800'; }
+                            else if (gateType === 'X') { bgColor = 'bg-red-200'; textColor = 'text-red-800'; }
+                            else if (gateType === 'Y') { bgColor = 'bg-yellow-200'; textColor = 'text-yellow-800'; }
+                            else if (gateType === 'Z') { bgColor = 'bg-green-200'; textColor = 'text-green-800'; }
+                            else if (gateType === 'S') { bgColor = 'bg-cyan-200'; textColor = 'text-cyan-800'; }
+                            else if (gateType === 'T') { bgColor = 'bg-amber-200'; textColor = 'text-amber-800'; }
+                            else if (gateType === 'RX') { bgColor = 'bg-rose-200'; textColor = 'text-rose-800'; }
+                            else if (gateType === 'RY') { bgColor = 'bg-teal-200'; textColor = 'text-teal-800'; }
+                            else if (gateType === 'RZ') { bgColor = 'bg-lime-200'; textColor = 'text-lime-800'; }
+                            else if (gateType === 'Measure') { displaySymbol = 'M'; bgColor = 'bg-gray-300'; textColor = 'text-gray-800'; }
+                            else if (gateType === 'CNOT-C') { displaySymbol = '●'; bgColor = 'bg-blue-300'; textColor = 'text-blue-900'; }
+                            else if (gateType === 'CNOT-T') { displaySymbol = '⊕'; bgColor = 'bg-blue-200'; textColor = 'text-blue-800'; }
+                            else if (gateType === 'SWAP') { displaySymbol = '✕'; bgColor = 'bg-indigo-200'; textColor = 'text-indigo-800'; }
+
+                            cellDiv.classList.add(bgColor.replace('bg-', 'border-') + '-focus', 'has-gate');
+                            gateDiv.className = `gate ${bgColor} ${textColor} flex flex-col items-center justify-center`;
+                            gateDiv.innerHTML = `<span>${displaySymbol}</span>`;
+
+                            if (gateAngle !== null) {
+                                const angleText = document.createElement('span');
+                                angleText.className = 'parameterized-gate-text';
+                                angleText.textContent = `(${gateAngle.toFixed(2)})`;
+                                gateDiv.appendChild(angleText);
+                                cellDiv.setAttribute('aria-label', `Circuit cell Qubit ${q}, Column ${c} with ${gateType} gate, angle ${gateAngle.toFixed(2)} radians`);
+                            } else {
+                                cellDiv.setAttribute('aria-label', `Circuit cell Qubit ${q}, Column ${c} with ${gateType} gate`);
+                            }
+
                             cellDiv.appendChild(gateDiv);
+                        } else {
+                            cellDiv.setAttribute('aria-label', `Circuit cell Qubit ${q}, Column ${c}, empty`);
                         }
+
 
                         if (pendingMultiQubitOp && pendingMultiQubitOp.controlQubit === q && pendingMultiQubitOp.column === c) {
                             cellDiv.classList.add('pending-control');
-                            if (!gateSymbol) {
+                            if (!gateData) {
                                 const pendingText = document.createElement('div');
-                                pendingText.className = 'text-xs text-yellow-700 italic font-semibold'; // --- MODIFIED ---
+                                pendingText.className = 'text-xs text-yellow-700 italic font-semibold';
                                 pendingText.textContent = pendingMultiQubitOp.type.charAt(0) + '-Ctrl?';
                                 cellDiv.appendChild(pendingText);
                             }
                         }
                         cellDiv.addEventListener('click', () => handleCellClick(q, c, cellDiv));
+                        cellDiv.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleCellClick(q, c, cellDiv);
+                            }
+                        });
                         rowDiv.appendChild(cellDiv);
                     }
                     circuitGridContainer.appendChild(rowDiv);
                 }
-                drawConnectingLines(); // --- NEW ---
+                drawConnectingLines();
             }
 
-            // --- NEW: Function to draw connecting lines for CNOT/SWAP ---
             function drawConnectingLines() {
-                circuitLinesContainer.innerHTML = ''; // Clear previous lines
+                circuitLinesContainer.innerHTML = '';
 
                 const cellWidth = 50;
                 const cellHeight = 50;
-                const qubitLabelWidth = document.querySelector('.w-16').offsetWidth; // Get actual width of Qubit label column
-                const colHeaderHeight = document.querySelector('.h-10').offsetHeight; // Get actual height of Column header row
+                const qubitLabelWidth = document.querySelector('.w-16').offsetWidth;
+                const colHeaderHeight = document.querySelector('.h-10').offsetHeight;
 
                 for (let c = 0; c < circuit.columns; c++) {
-                    // CNOT Lines
                     const controlQubits = [];
                     const targetQubits = [];
                     for (let q = 0; q < circuit.qubits; q++) {
-                        if (circuit.gates[q][c] === 'CNOT-C') controlQubits.push(q);
-                        if (circuit.gates[q][c] === 'CNOT-T') targetQubits.push(q);
+                        const gateData = circuit.gates[q][c];
+                        const gateType = typeof gateData === 'string' ? gateData : (gateData && gateData.type);
+                        if (gateType === 'CNOT-C') controlQubits.push(q);
+                        if (gateType === 'CNOT-T') targetQubits.push(q);
                     }
 
-                    // Simplistic pairing: assumes one CNOT per column for visual simplicity.
-                    // For multiple CNOTs in a column, a more robust pairing logic is needed.
                     if (controlQubits.length > 0 && targetQubits.length > 0) {
-                        // For now, just connect the first found control to first found target.
-                        // A better system would store pairs if multiple CNOTs allowed per column.
-                        const q1 = Math.min(...controlQubits, ...targetQubits); // Topmost qubit of the CNOT
-                        const q2 = Math.max(...controlQubits, ...targetQubits); // Bottommost qubit of the CNOT
+                        const q1 = Math.min(...controlQubits, ...targetQubits);
+                        const q2 = Math.max(...controlQubits, ...targetQubits);
 
                         const line = document.createElement('div');
                         line.className = 'control-line';
-                        const xPos = qubitLabelWidth + (c * cellWidth) + (cellWidth / 2) - 1.5; // Center of cell, adjust for line width
+                        const xPos = qubitLabelWidth + (c * cellWidth) + (cellWidth / 2) - 1.5;
                         const yTop = colHeaderHeight + (q1 * cellHeight) + (cellHeight / 2);
                         const yBottom = colHeaderHeight + (q2 * cellHeight) + (cellHeight / 2);
 
@@ -620,17 +622,18 @@
                         circuitLinesContainer.appendChild(line);
                     }
 
-                    // SWAP Lines
                     const swapQubits = [];
                     for (let q = 0; q < circuit.qubits; q++) {
-                        if (circuit.gates[q][c] === 'SWAP') swapQubits.push(q);
+                        const gateData = circuit.gates[q][c];
+                        const gateType = typeof gateData === 'string' ? gateData : (gateData && gateData.type);
+                        if (gateType === 'SWAP') swapQubits.push(q);
                     }
-                    if (swapQubits.length === 2) { // Exactly two SWAP gates for a line
+                    if (swapQubits.length === 2) {
                         const q1 = swapQubits[0];
                         const q2 = swapQubits[1];
                         const line = document.createElement('div');
                         line.className = 'control-line';
-                        line.style.backgroundColor = '#5b21b6'; // Indigo for SWAP
+                        line.style.backgroundColor = '#5b21b6';
 
                         const xPos = qubitLabelWidth + (c * cellWidth) + (cellWidth / 2) - 1.5;
                         const yTop = colHeaderHeight + (Math.min(q1, q2) * cellHeight) + (cellHeight / 2);
@@ -646,7 +649,7 @@
 
 
             function handleCellClick(qubit, column, cellElement) {
-                saveCircuitState(); // --- NEW: Save state before modification ---
+                saveCircuitState();
 
                 document.querySelectorAll('.circuit-cell.selected').forEach(c => c.classList.remove('selected'));
                 cellElement.classList.add('selected');
@@ -662,7 +665,6 @@
                             circuit.gates[controlQubit][controlCol] = 'CNOT-C';
                             circuit.gates[qubit][column] = 'CNOT-T';
                         } else if (type === 'SWAP') {
-                            // Ensure the first clicked cell for SWAP is also marked
                             if (circuit.gates[controlQubit][controlCol] === null) {
                                 circuit.gates[controlQubit][controlCol] = 'SWAP';
                             }
@@ -676,72 +678,72 @@
                         alert(`Invalid target for ${pendingMultiQubitOp.type}. Target must be a different qubit. Cancelling operation.`);
                         clearGateSelection();
                     }
-                } else if (selectedGateType) {
-                    if (selectedGateType === 'CNOT' || selectedGateType === 'SWAP') {
+                } else if (selectedGate) {
+                    const gateType = selectedGate.type;
+                    if (gateType === 'CNOT' || gateType === 'SWAP') {
                         circuit.gates[qubit][column] = null;
-                        pendingMultiQubitOp = { type: selectedGateType, controlQubit: qubit, column: column };
+                        pendingMultiQubitOp = { type: gateType, controlQubit: qubit, column: column };
                         updateGateStatusDisplay();
-                    } else if (selectedGateType === 'CLEAR') {
+                    } else if (gateType === 'CLEAR') {
                         circuit.gates[qubit][column] = null;
-                        // Check if this clear orphaned a multi-qubit gate part and clear it too
-                        for (let q_other = 0; q_other < circuit.qubits; q_other++) {
-                            if (q_other === qubit) continue;
-                            const otherGate = circuit.gates[q_other][column];
-                            if ((otherGate === 'CNOT-C' || otherGate === 'CNOT-T' || otherGate === 'SWAP')) {
-                                // Simple check: if a CNOT/SWAP part exists in the same column,
-                                // assume it might be orphaned. A more robust check would look for its specific partner.
-                                // For now, let's be conservative and only clear the clicked cell.
-                                // To clear partners, you'd need to find them and null them out.
-                            }
+                    } else if (['RX', 'RY', 'RZ'].includes(gateType)) {
+                        const angleRad = parseFloat(prompt(`Enter angle in radians for ${gateType} gate (e.g., ${Math.PI.toFixed(4)} for Pi, ${(Math.PI / 2).toFixed(4)} for Pi/2):`, (Math.PI / 2).toFixed(4)));
+                        if (!isNaN(angleRad)) {
+                            circuit.gates[qubit][column] = { type: gateType, angle: angleRad };
+                        } else {
+                            alert("Invalid angle. Gate not placed.");
                         }
                     } else {
-                        circuit.gates[qubit][column] = selectedGateType;
+                        circuit.gates[qubit][column] = gateType;
                     }
                 }
                 renderCircuitGrid();
             }
 
             function clearGateSelection() {
-                selectedGateType = null;
+                selectedGate = null;
                 pendingMultiQubitOp = null;
                 updateSelectedGateButtonStyle();
                 updateGateStatusDisplay();
                 if (lastClickedCellCoords) {
-                    renderCircuitGrid(); // Re-render to remove pending styles etc.
+                    renderCircuitGrid();
                 }
             }
 
             function updateSelectedGateButtonStyle() {
                 document.querySelectorAll('.gate-button').forEach(btn => {
-                    btn.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-500', 'selected-gate-button', 'scale-110', 'z-10'); // --- MODIFIED: Clearer selection style for tool ---
-                    btn.classList.remove('bg-blue-300'); // Example, adapt to actual selected style
-                    if (btn.getAttribute('data-gate') === selectedGateType) {
+                    btn.classList.remove('ring-4', 'ring-offset-2', 'ring-blue-500', 'selected-gate-button', 'scale-110', 'z-10');
+                    btn.classList.remove('bg-blue-300');
+                    if (selectedGate && btn.getAttribute('data-gate') === selectedGate.type) {
                         btn.classList.add('ring-4', 'ring-offset-2', 'ring-blue-500', 'selected-gate-button', 'scale-110', 'z-10');
-                        // Example: btn.classList.add('bg-blue-300'); // Add a strong selected background
                     }
                 });
             }
 
             function updateGateStatusDisplay() {
-                if (!selectedGateType && !pendingMultiQubitOp) {
+                if (!selectedGate && !pendingMultiQubitOp) {
                     gateStatusSpan.textContent = "Select a gate or action."; return;
                 }
                 if (pendingMultiQubitOp) {
                     gateStatusSpan.textContent = `Placing ${pendingMultiQubitOp.type}. Click target qubit in column ${pendingMultiQubitOp.column}. (Qubit ${pendingMultiQubitOp.controlQubit} is control/first).`;
-                } else if (selectedGateType) {
-                    if (selectedGateType === 'CNOT' || selectedGateType === 'SWAP') {
-                        gateStatusSpan.textContent = `Selected ${selectedGateType}. Click control/first qubit cell.`;
-                    } else if (selectedGateType === 'CLEAR') {
+                } else if (selectedGate) {
+                    const gateType = selectedGate.type;
+                    if (gateType === 'CNOT' || gateType === 'SWAP') {
+                        gateStatusSpan.textContent = `Selected ${gateType}. Click control/first qubit cell.`;
+                    } else if (gateType === 'CLEAR') {
                         gateStatusSpan.textContent = `Selected Delete. Click a cell to clear its gate.`;
-                    } else {
-                        gateStatusSpan.textContent = `Selected ${selectedGateType}. Click a cell to place the gate.`;
+                    } else if (['RX', 'RY', 'RZ'].includes(gateType)) {
+                        gateStatusSpan.textContent = `Selected ${gateType}. Click cell to place. Angle will be prompted.`;
+                    }
+                    else {
+                        gateStatusSpan.textContent = `Selected ${gateType}. Click a cell to place the gate.`;
                     }
                 }
             }
 
             function clearFullCircuit() {
                 if (confirm('Are you sure you want to clear the entire circuit? This action can be undone.')) {
-                    saveCircuitState(); // --- NEW: Save before clearing ---
+                    saveCircuitState();
                     circuit.gates = Array(circuit.qubits).fill(null).map(() => Array(circuit.columns).fill(null));
                     clearGateSelection();
                     renderCircuitGrid();
@@ -749,70 +751,86 @@
                 }
             }
 
-            // --- QASM GENERATION & SIMULATION (largely unchanged, but ensure robustness) ---
             function generateQASM() {
                 let qasmString = "OPENQASM 2.0;\n";
                 qasmString += "include \"qelib1.inc\";\n";
                 qasmString += `qreg q[${circuit.qubits}];\n`;
 
                 let hasMeasurement = false;
-                circuit.gates.forEach(row => row.forEach(gate => {
-                    if (gate === 'Measure') hasMeasurement = true;
+                circuit.gates.forEach(row => row.forEach(gateData => {
+                    const gateType = typeof gateData === 'string' ? gateData : (gateData && gateData.type);
+                    if (gateType === 'Measure') hasMeasurement = true;
                 }));
 
                 if (hasMeasurement) {
                     qasmString += `creg c[${circuit.qubits}];\n`;
                 }
 
-                const processedMultiQubitInColumn = {}; // Store by column index: e.g. { 0: set(), 1: set() }
+                const processedMultiQubitInColumn = {};
 
                 for (let c = 0; c < circuit.columns; c++) {
                     processedMultiQubitInColumn[c] = new Set();
                     for (let q = 0; q < circuit.qubits; q++) {
-                        const gate = circuit.gates[q][c];
-                        if (!gate || processedMultiQubitInColumn[c].has(q)) continue; // Skip if no gate or already processed as part of multi-qubit op
+                        const gateData = circuit.gates[q][c];
+                        if (!gateData || processedMultiQubitInColumn[c].has(q)) continue;
 
                         const q_idx = `q[${q}]`;
                         const c_idx = `c[${q}]`;
+                        let gateType = '';
+                        let gateAngle = null;
 
-                        switch (gate) {
+                        if (typeof gateData === 'string') {
+                            gateType = gateData;
+                        } else if (typeof gateData === 'object' && gateData.type) {
+                            gateType = gateData.type;
+                            gateAngle = gateData.angle;
+                        }
+
+
+                        switch (gateType) {
                             case 'H': qasmString += `h ${q_idx};\n`; break;
                             case 'X': qasmString += `x ${q_idx};\n`; break;
                             case 'Y': qasmString += `y ${q_idx};\n`; break;
                             case 'Z': qasmString += `z ${q_idx};\n`; break;
                             case 'S': qasmString += `s ${q_idx};\n`; break;
                             case 'T': qasmString += `t ${q_idx};\n`; break;
+                            case 'RX': qasmString += `rx(${gateAngle !== null ? gateAngle : 0}) ${q_idx};\n`; break;
+                            case 'RY': qasmString += `ry(${gateAngle !== null ? gateAngle : 0}) ${q_idx};\n`; break;
+                            case 'RZ': qasmString += `rz(${gateAngle !== null ? gateAngle : 0}) ${q_idx};\n`; break;
                             case 'Measure': qasmString += `measure ${q_idx} -> ${c_idx};\n`; break;
                             case 'CNOT-C':
                                 let targetQ_cnot = -1;
                                 for (let tq = 0; tq < circuit.qubits; tq++) {
-                                    if (circuit.gates[tq][c] === 'CNOT-T' && tq !== q) { targetQ_cnot = tq; break; }
+                                    const targetGateData = circuit.gates[tq][c];
+                                    const targetGateType = typeof targetGateData === 'string' ? targetGateData : (targetGateData && targetGateData.type);
+                                    if (targetGateType === 'CNOT-T' && tq !== q) { targetQ_cnot = tq; break; }
                                 }
                                 if (targetQ_cnot !== -1) {
                                     qasmString += `cx ${q_idx},q[${targetQ_cnot}];\n`;
-                                    processedMultiQubitInColumn[c].add(targetQ_cnot); // Mark target as processed for this column
+                                    processedMultiQubitInColumn[c].add(targetQ_cnot);
                                 } else { qasmString += `// Warning: CNOT-C at q[${q}],col[${c}] without valid target in same column.\n`; }
                                 break;
-                            case 'CNOT-T': /* Handled by CNOT-C logic */ break;
+                            case 'CNOT-T': break;
                             case 'SWAP':
                                 let partnerQ_swap = -1;
-                                // SWAP gates mark both qubits. Find the other one in the same column.
                                 for (let pq = 0; pq < circuit.qubits; pq++) {
-                                    if (pq !== q && circuit.gates[pq][c] === 'SWAP') {
+                                    const partnerGateData = circuit.gates[pq][c];
+                                    const partnerGateType = typeof partnerGateData === 'string' ? partnerGateData : (partnerGateData && partnerGateData.type);
+                                    if (pq !== q && partnerGateType === 'SWAP') {
                                         partnerQ_swap = pq;
                                         break;
                                     }
                                 }
-                                if (partnerQ_swap !== -1 && !processedMultiQubitInColumn[c].has(partnerQ_swap)) { // Ensure partner hasn't initiated this SWAP
+                                if (partnerQ_swap !== -1 && !processedMultiQubitInColumn[c].has(partnerQ_swap)) {
                                     qasmString += `swap ${q_idx},q[${partnerQ_swap}];\n`;
-                                    processedMultiQubitInColumn[c].add(partnerQ_swap); // Mark partner as processed
-                                } else if (partnerQ_swap === -1) {
+                                    processedMultiQubitInColumn[c].add(partnerQ_swap);
+                                } else if (partnerQ_swap === -1 && !processedMultiQubitInColumn[c].has(q)) {
                                     qasmString += `// Warning: SWAP at q[${q}],col[${c}] without a partner in the same column.\n`;
                                 }
                                 break;
-                            default: qasmString += `// Unknown gate '${gate}' at q[${q}],col[${c}]\n`;
+                            default: qasmString += `// Unknown gate '${gateType}' at q[${q}],col[${c}]\n`;
                         }
-                        processedMultiQubitInColumn[c].add(q); // Mark current qubit as processed for this gate/operation
+                        processedMultiQubitInColumn[c].add(q);
                     }
                 }
                 return qasmString;
@@ -823,7 +841,7 @@
                 const qasmCode = generateQASM();
 
                 let htmlOutput = "<h3>Generated QASM 2.0:</h3>";
-                htmlOutput += `<pre class="whitespace-pre-wrap break-all text-sm p-2 bg-gray-100 rounded border">${qasmCode.replace(/</g, "<").replace(/>/g, ">")}</pre>`; // --- MODIFIED: styling ---
+                htmlOutput += `<pre class="whitespace-pre-wrap break-all text-sm p-2 bg-gray-100 rounded border">${qasmCode.replace(/</g, "<").replace(/>/g, ">")}</pre>`;
                 htmlOutput += "<hr class='my-4 border-gray-300'>";
                 htmlOutput += "<h3>Simulation Results:</h3>";
 
@@ -869,8 +887,7 @@
                 }
             }
 
-            // --- IMPORT/EXPORT ---
-            function exportCircuitToJSON() { /* ... (keep existing, good as is) ... */
+            function exportCircuitToJSON() {
                 const circuitData = { qubits: circuit.qubits, columns: circuit.columns, gates: circuit.gates };
                 const dataStr = JSON.stringify(circuitData, null, 2);
                 const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
@@ -880,20 +897,20 @@
                 linkElement.setAttribute('download', exportFileDefaultName);
                 linkElement.click();
             }
-            function showImportModal() { /* ... (keep existing) ... */
+            function showImportModal() {
                 importJsonTextarea.value = ''; importJsonModal.classList.remove('hidden');
             }
             function hideImportModal() { importJsonModal.classList.add('hidden'); }
 
             function importCircuitFromJSON() {
-                saveCircuitState(); // --- NEW: Save state before import ---
+                saveCircuitState();
                 try {
                     const imported = JSON.parse(importJsonTextarea.value);
                     if (!imported.qubits || !imported.columns || !Array.isArray(imported.gates)) {
                         throw new Error('Invalid circuit data. Missing qubits, columns, or gates array.');
                     }
-                    if (imported.gates.length !== imported.qubits || (imported.qubits > 0 && imported.gates[0].length !== imported.columns)) {
-                        throw new Error('Gate array dimensions do not match qubit and column counts.');
+                    if (imported.gates.length !== imported.qubits || (imported.qubits > 0 && imported.gates.some(row => !Array.isArray(row) || row.length !== imported.columns))) {
+                        throw new Error('Gate array dimensions do not match qubit and column counts or is malformed.');
                     }
 
                     circuit.qubits = imported.qubits;
@@ -909,16 +926,13 @@
                     simulationResultsDiv.innerHTML = '<p class="text-gray-500 italic">Circuit imported. Run simulation.</p>';
                 } catch (error) {
                     alert('Error importing circuit: ' + error.message);
-                    // If import fails, we might want to revert to the saved state, but that's complex.
-                    // For now, the invalid import attempt won't create a new history entry if it errors out before render.
                 }
             }
 
-            // --- PREBUILT CIRCUITS ---
             function loadPrebuiltCircuit() {
                 const circuitType = prebuiltCircuitsSelect.value;
                 if (!circuitType) return;
-                saveCircuitState(); // --- NEW: Save state before loading ---
+                saveCircuitState();
                 let newCircuitData;
                 switch (circuitType) {
                     case 'bell':
@@ -927,22 +941,15 @@
                     case 'ghz':
                         newCircuitData = { qubits: 3, columns: 3, gates: [['H', 'CNOT-C', null], [null, 'CNOT-T', 'CNOT-C'], [null, null, 'CNOT-T']] };
                         break;
-                    case 'teleport': // --- NEW: Teleportation ---
+                    case 'teleport':
                         newCircuitData = {
                             qubits: 3, columns: 7,
                             gates: [
-                                // Q0: Qubit to teleport, Q1: Alice's Bell pair half, Q2: Bob's Bell pair half
-                                [null, 'H', 'CNOT-C', null, 'H', 'Measure', null],      // Q0 (psi)
-                                ['H', 'CNOT-C', 'CNOT-T', 'Measure', null, null, 'X'],  // Q1 (Alice) - X controlled by Q0 Measure
-                                ['CNOT-T', null, null, 'Measure', null, null, 'Z']      // Q2 (Bob) - Z controlled by Q1 Measure
-                                // Note: Actual QASM for controlled X/Z from measurement requires `if` classically,
-                                // This is a simplified visual representation. QASM generated will be direct.
+                                [null, 'H', 'CNOT-C', null, 'H', 'Measure', null],
+                                [{ type: 'RX', angle: 0.785 }, 'CNOT-C', 'CNOT-T', 'Measure', null, null, 'X'],
+                                ['CNOT-T', null, null, 'Measure', null, null, 'Z']
                             ]
                         };
-                        // For a true teleportation, the last X and Z are classically controlled.
-                        // This representation is a common way to show it in circuit diagrams before actual conditional logic.
-                        // The QASM generated will apply them unconditionally if "Measure" isn't linked to conditions.
-                        // A more advanced QASM generator would handle `if (creg==val) gate;`
                         alert("Note: The teleportation circuit's final X and Z gates on Bob's qubit (Q2) are typically classically controlled by Alice's measurement outcomes. This visualizer applies them directly for simplicity in QASM generation. A full quantum backend handles conditional operations based on measurement.");
                         break;
                     default: return;
@@ -958,8 +965,7 @@
                 prebuiltCircuitsSelect.value = '';
             }
 
-            // --- AI TOOLS (OpenRouter) ---
-            function showAiBuildModal() { /* ... (keep existing) ... */
+            function showAiBuildModal() {
                 aiBuildPromptTextarea.value = ''; aiBuildModal.classList.remove('hidden');
             }
             function hideAiBuildModal() { aiBuildModal.classList.add('hidden'); }
@@ -973,14 +979,40 @@
                     hideAiBuildModal();
                     return;
                 }
-                saveCircuitState(); // --- NEW: Save state before AI build ---
+                saveCircuitState();
                 hideAiBuildModal();
                 simulationResultsDiv.innerHTML = '<p class="text-indigo-600 animate-pulse font-medium">Generating circuit with AI...</p>';
 
                 try {
-                    // ... (rest of AI build logic, ensure it's robust) ...
-                    const response = await fetch(OPENROUTER_API_URL, { /* ... */ });
-                    // ...
+                    const systemPrompt = `You are a quantum computing expert. Convert user's description into a JSON quantum circuit.
+The JSON structure should be: {"qubits":int, "columns":int, "gates":array[qubit][column], "description":str}.
+'gates' is a 2D array. Each element can be null (no gate), a string for a simple gate, or an object for a parameterized gate.
+Valid simple gate strings: "H", "X", "Y", "Z", "S", "T", "Measure", "CNOT-C", "CNOT-T", "SWAP".
+Parameterized gates are objects: {"type": "RX", "angle": float_in_radians}, {"type": "RY", "angle": float_in_radians}, {"type": "RZ", "angle": float_in_radians}.
+CNOT-C (control) and CNOT-T (target) must be in the same column on different qubits.
+SWAP must appear on both involved qubits in the same column (two "SWAP" strings).
+Ensure the dimensions of the 'gates' array are correct (qubits rows, columns cols).
+Example for a 2-qubit Bell state with an RZ(pi/2) on q0 first:
+{"qubits": 2, "columns": 3, "description": "Bell state with initial RZ on q0.", "gates": [[{"type":"RZ", "angle":1.5708}, "H", "CNOT-C"], [null, null, "CNOT-T"]]}
+If the user doesn't specify enough columns, try to make it compact but readable. Max qubits 8, max columns 20.`;
+
+                    const response = await fetch(OPENROUTER_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': window.location.href,
+                            'X-Title': 'Quantum Circuit Simulator'
+                        },
+                        body: JSON.stringify({
+                            model: "openai/gpt-3.5-turbo",
+                            messages: [
+                                { role: "system", content: systemPrompt },
+                                { role: "user", content: userPrompt }
+                            ],
+                            temperature: 0.2
+                        })
+                    });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error?.message || 'AI API error');
 
@@ -991,17 +1023,30 @@
                         circuitData = JSON.parse(jsonMatch ? jsonMatch[1] : aiResponseContent);
                     } catch (e) { throw new Error('AI response was not valid JSON: ' + e.message + "\nResponse: " + aiResponseContent); }
 
-                    if (!circuitData.qubits || !circuitData.columns || !Array.isArray(circuitData.gates) || !circuitData.description) {
+                    if (!circuitData.qubits || !circuitData.columns || !Array.isArray(circuitData.gates) || typeof circuitData.description !== 'string') {
                         throw new Error('AI response missing required fields (qubits, columns, gates, description).');
                     }
                     if (circuitData.gates.length !== circuitData.qubits ||
                         (circuitData.qubits > 0 && circuitData.gates.some(row => !Array.isArray(row) || row.length !== circuitData.columns))) {
                         throw new Error('AI response gate array dimensions do not match qubit and column counts or is malformed.');
                     }
+                    // Further validation for gate content (optional but good)
+                    for (let q = 0; q < circuitData.qubits; q++) {
+                        for (let c = 0; c < circuitData.columns; c++) {
+                            const gate = circuitData.gates[q][c];
+                            if (gate !== null && typeof gate !== 'string' && (typeof gate !== 'object' || !gate.type)) {
+                                throw new Error(`Invalid gate data at Q${q}, C${c}: ${JSON.stringify(gate)}`);
+                            }
+                            if (typeof gate === 'object' && (gate.type === 'RX' || gate.type === 'RY' || gate.type === 'RZ') && typeof gate.angle !== 'number') {
+                                throw new Error(`Parameterized gate ${gate.type} at Q${q}, C${c} missing valid 'angle'.`);
+                            }
+                        }
+                    }
 
-                    circuit.qubits = circuitData.qubits;
-                    circuit.columns = circuitData.columns;
-                    circuit.gates = circuitData.gates; // Make sure gates are valid
+
+                    circuit.qubits = Math.min(8, Math.max(1, parseInt(circuitData.qubits) || 2));
+                    circuit.columns = Math.min(20, Math.max(1, parseInt(circuitData.columns) || 4));
+                    circuit.gates = circuitData.gates;
                     qubitCountInput.value = circuit.qubits;
                     columnCountInput.value = circuit.columns;
                     clearGateSelection();
@@ -1010,12 +1055,11 @@
                 } catch (error) {
                     simulationResultsDiv.innerHTML = `<div class="text-red-600"><p class="font-semibold">Error with AI Build:</p><p class="text-sm">${error.message}</p></div>`;
                     console.error('AI Build error:', error);
-                    // Potentially revert to saved state if AI build fails significantly
                 }
             }
 
-            async function explainCircuitAI() { /* ... (keep existing, ensure good error display) ... */
-                if (circuit.gates.every(row => row.every(gate => gate === null))) {
+            async function explainCircuitAI() {
+                if (circuit.gates.every(row => row.every(gateData => gateData === null))) {
                     alert('Circuit is empty. Add gates first.'); return;
                 }
                 if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
@@ -1034,9 +1078,9 @@
                             'X-Title': 'Quantum Circuit Simulator'
                         },
                         body: JSON.stringify({
-                            model: "openai/gpt-3.5-turbo", // Or "mistralai/mistral-7b-instruct" for potentially cheaper/faster
+                            model: "openai/gpt-3.5-turbo",
                             messages: [
-                                { role: "system", content: "You are a quantum computing educator. Explain the given circuit (qubits, columns, gates array) concisely in markdown. Identify standard algorithms if any. Use clear, beginner-friendly language but be accurate." },
+                                { role: "system", content: "You are a quantum computing educator. Explain the given circuit (qubits, columns, gates array) concisely in markdown. Gate objects like {\"type\":\"RX\", \"angle\":1.57} mean RX gate with angle 1.57 radians. Identify standard algorithms if any. Use clear, beginner-friendly language but be accurate." },
                                 { role: "user", content: `Explain this circuit: Qubits: ${circuit.qubits}, Columns: ${circuit.columns}, Gates: ${JSON.stringify(circuit.gates)}` }
                             ],
                             temperature: 0.4
@@ -1046,7 +1090,7 @@
                     if (!response.ok) throw new Error(data.error?.message || 'AI API error');
                     const explanation = data.choices[0].message.content;
 
-                    const formattedExplanation = explanation // Keep your markdown formatting
+                    const formattedExplanation = explanation
                         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                         .replace(/\*(.*?)\*/g, '<em>$1</em>')
                         .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-200 p-2 rounded text-sm my-1 whitespace-pre-wrap">$1</pre>')
@@ -1060,8 +1104,7 @@
                 }
             }
 
-            // --- AI CHAT (largely unchanged, but ensure good error display & UI) ---
-            function addMessageToChatUI(role, content, id = null) { /* ... (keep existing, ensure styling is good) ... */
+            function addMessageToChatUI(role, content, id = null) {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'ai-message'}`;
                 if (id) messageDiv.id = id;
@@ -1078,7 +1121,7 @@
                 chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
             }
 
-            async function sendChatMessage() { /* ... (keep existing logic) ... */
+            async function sendChatMessage() {
                 const userMessage = chatInputField.value.trim();
                 if (!userMessage) return;
                 if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === YOUR_OPENROUTER_API_KEY_PLACEHOLDER) {
@@ -1104,10 +1147,10 @@
                             'X-Title': 'Quantum Circuit Simulator'
                         },
                         body: JSON.stringify({
-                            model: "openai/gpt-3.5-turbo", // Or "mistralai/mistral-7b-instruct"
+                            model: "openai/gpt-3.5-turbo",
                             messages: [
                                 { role: "system", content: "You are a Quantum Computing Tutor. Answer concisely in markdown. Explain concepts clearly for beginners. If asked to write code, prefer Qiskit/Python examples unless specified." },
-                                ...aiChatHistory.slice(-12) // Send more history if needed
+                                ...aiChatHistory.slice(-12)
                             ],
                             temperature: 0.5
                         })
@@ -1145,17 +1188,16 @@
             }
 
 
-            // --- EVENT LISTENERS ---
             function setupEventListeners() {
-                updateCircuitBtn.addEventListener('click', () => initializeCircuitState(true)); // Pass true for user action
+                updateCircuitBtn.addEventListener('click', () => initializeCircuitState(true));
 
                 document.querySelectorAll('.gate-button').forEach(button => {
                     button.addEventListener('click', function () {
-                        const gateType = this.getAttribute('data-gate');
-                        if (selectedGateType === gateType && !pendingMultiQubitOp) {
+                        const gateTypeFromButton = this.getAttribute('data-gate');
+                        if (selectedGate && selectedGate.type === gateTypeFromButton && !pendingMultiQubitOp) {
                             clearGateSelection();
                         } else {
-                            selectedGateType = gateType;
+                            selectedGate = { type: gateTypeFromButton };
                             pendingMultiQubitOp = null;
                             updateSelectedGateButtonStyle();
                             updateGateStatusDisplay();
@@ -1165,7 +1207,7 @@
 
                 runSimulationBtn.addEventListener('click', runSimulationWithBackend);
                 clearCircuitBtn.addEventListener('click', clearFullCircuit);
-                undoCircuitBtn.addEventListener('click', undoLastAction); // --- NEW ---
+                undoCircuitBtn.addEventListener('click', undoLastAction);
                 exportCircuitBtn.addEventListener('click', exportCircuitToJSON);
 
                 importCircuitBtn.addEventListener('click', showImportModal);
@@ -1186,7 +1228,7 @@
                         sendChatMessage();
                     }
                 });
-                updateUndoButtonState(); // Initialize undo button state
+                updateUndoButtonState();
             }
         });
     </script>
